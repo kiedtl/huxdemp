@@ -23,7 +23,7 @@ typedef unsigned char byte_t;
 
 struct {
 	char **table;
-	_Bool ctrls;
+	_Bool ctrls, utf8;
 } options;
 
 static const uint8_t utf8bg[] = {
@@ -68,7 +68,8 @@ display(byte_t *buf, size_t sz, size_t offset)
 		if (i == (LINELEN / 2))
 			printf(" ");
 
-		printf("\x1b[48;5;%hum%s%02hx", utf8bg[utf8_state[1]],
+		printf("\x1b[48;5;%dm%s%02hx",
+			options.utf8 ? utf8bg[utf8_state[1]] : 0,
 			OR(styles[buf[i]].esc2, ""), buf[i]);
 
 		if (utf8_state[0] + utf8_state[1] <= (ssize_t)off)
@@ -85,12 +86,9 @@ display(byte_t *buf, size_t sz, size_t offset)
 	}
 	printf("   │");
 
-	for (size_t off = offset, i = 0; i < sz; ++i, ++off) {
-		_utf8state((ssize_t)off, buf[i]);
-
+	for (size_t off = offset, i = 0; i < sz; ++i, ++off)
 		printf("%s%s\x1b[m", OR(styles[buf[i]].esc1, ""),
 			_format_char(buf[i]));
-	}
 
 	/*
 	 * XXX: should we pad the ASCII column?
@@ -139,11 +137,13 @@ int
 main(int argc, char **argv)
 {
 	options.table = (char **)&t_default;
-	options.ctrls = false;
+	options.ctrls = options.utf8 = false;
 
 	ssize_t opt;
-	while ((opt = getopt(argc, argv, "ct:")) != -1) {
+	while ((opt = getopt(argc, argv, "cut:")) != -1) {
 		switch(opt) {
+		break; case 'u':
+			options.utf8  = !options.utf8;
 		break; case 'c':
 			options.ctrls = !options.ctrls;
 		break; case 't':
