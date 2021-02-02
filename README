@@ -1,0 +1,7 @@
+huxdemp is a version of hexdump that distinguishes between:
+
+- The NUL Byte
+- Whitespace ASCII characters
+- Printable ASCII characters
+- Other ASCII control characters
+- UTF8 continuation characters
