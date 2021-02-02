@@ -14,8 +14,8 @@
 /*
  * shut up, its for for readibility guis
  *
- * and anyways, programmars nowadays should stop pretending
- * that C's `char' is really capable of holding a character
+ * and anyways, programmars nowidays should stahp pretending
+ * like C's `char' is really capable of holding a character
  */
 typedef unsigned char byte_t;
 
@@ -26,12 +26,22 @@ struct {
 	_Bool ctrls, utf8;
 } options;
 
+/* Keep track of what UTF8 codepoint we're printing. This
+ * allows us to highlight bytes that belong to the same Unicode
+ * codepoint.
+ *
+ * This is reset after each file, for obvious reasons.
+ *
+ * { <offset>, <length> } (the offset is the position of the
+ * first byte in the encoded UTF8, the length is the number of
+ * bytes contained therin) */
+static ssize_t utf8_state[] = { -1, -1 };
+
+/* The colors used to highlight bytes that belong to the same
+ * codepoint. */
 static const uint8_t utf8bg[] = {
 	0, 230, 229, 228, 227, 226, 189
 };
-
-/* pos, len */
-static ssize_t utf8_state[] = { -1, -1 };
 
 static inline void
 _utf8state(ssize_t offset, byte_t _char)
