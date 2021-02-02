@@ -1,8 +1,12 @@
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+
+#include "tables.h"
+#include "utf8.c"
 
 #define MAX(V, H) ((V) > (H) ? (H) : (V))
 #define OR(A, B)  ((A) ? (A) : (B))
@@ -17,48 +21,75 @@ typedef unsigned char byte_t;
 
 #define LINELEN    16
 
-struct Style {
-	char *s, *esc1, *esc2;
-} styles[] = {
-#define CTRL { "·", "\x1b[34m", "\x1b[34m" }
-	[0]   = { "0", "\x1b[37m", "\x1b[37m" },
-	[1]   = CTRL, [2]  = CTRL, [3]  = CTRL, [4]  = CTRL, [5]  = CTRL,
-	[6]   = CTRL, [7]  = CTRL, [8]  = CTRL,
-	[9]   = { "»", "\x1b[1;35m", "\x1b[35m" },
-	[10]  = { "_", "\x1b[1;37m", "\x1b[1m"  },
-	[11]  = CTRL, [12] = CTRL, [13] = CTRL, [14] = CTRL, [15] = CTRL,
-	[16]  = CTRL, [17] = CTRL, [18] = CTRL, [19] = CTRL, [20] = CTRL,
-	[21]  = CTRL, [22] = CTRL, [23] = CTRL, [24] = CTRL, [25] = CTRL,
-	[26]  = CTRL, [27] = CTRL, [28] = CTRL, [29] = CTRL, [30] = CTRL,
-	[31]  = CTRL,
-	[127] = { "«", "\x1b[1;31m", "\x1b[31m" },
-#undef CTRL
+struct {
+	char **table;
+	_Bool ctrls;
+} options;
+
+static const uint8_t utf8bg[] = {
+	0, 230, 229, 228, 227, 226, 189
 };
+
+/* pos, len */
+static ssize_t utf8_state[] = { -1, -1 };
+
+static inline void
+_utf8state(ssize_t offset, byte_t _char)
+{
+	if (utf8_state[0] == -1 || utf8_state[0]+utf8_state[1] < offset) {
+		utf8_state[0] = offset;
+		utf8_state[1] = utf8_char_length(_char) - 1;
+	}
+}
+
+static inline char *
+_format_char(byte_t b)
+{
+	static char chbuf[2] = {0};
+
+	if (options.ctrls && t_cntrls[b])
+		return t_cntrls[b];
+
+	if (options.table && options.table[b])
+		return options.table[b];
+
+	chbuf[0] = isprint(b) ? b : '.';
+	return (char *)&chbuf;
+}
 
 static void
 display(byte_t *buf, size_t sz, size_t offset)
 {
 	printf("\x1b[37m%08zx\x1b[m    ", offset);
 
-	for (byte_t *p = buf; (size_t)(p - buf) < sz; ++p) {
-		if ((p - buf) == (LINELEN / 2))
+	for (size_t off = offset, i = 0; i < sz; ++i, ++off) {
+		_utf8state((ssize_t)off, buf[i]);
+
+		if (i == (LINELEN / 2))
 			printf(" ");
 
-		printf("%s%02hx\x1b[m ",
-			OR(styles[*p].esc2, ""), *p);
+		printf("\x1b[48;5;%hum%s%02hx", utf8bg[utf8_state[1]],
+			OR(styles[buf[i]].esc2, ""), buf[i]);
+
+		if (utf8_state[0] + utf8_state[1] <= (ssize_t)off)
+			printf("\x1b[m ");
+		else
+			printf("\x1b[97m\x1b[22m ");
 	}
 
-	if (LINELEN - sz > 0)
-		printf("%*s", (int)((LINELEN - sz) * 3 + 1), "");
+	printf("\x1b[m");
+	if (LINELEN - sz > 0) {
+		printf("%*s", (int)(LINELEN - sz) * 3, "");
+		if (sz <= (LINELEN / 2))
+			printf(" ");
+	}
 	printf("   │");
 
-	for (byte_t *p = buf; (size_t)(p - buf) < sz; ++p) {
-		if (styles[*p].s != NULL) {
-			printf("%s%s\x1b[m", OR(styles[*p].esc1, ""),
-					styles[*p].s);
-		} else {
-			putchar(*p);
-		}
+	for (size_t off = offset, i = 0; i < sz; ++i, ++off) {
+		_utf8state((ssize_t)off, buf[i]);
+
+		printf("%s%s\x1b[m", OR(styles[buf[i]].esc1, ""),
+			_format_char(buf[i]));
 	}
 
 	/*
@@ -72,28 +103,73 @@ display(byte_t *buf, size_t sz, size_t offset)
 }
 
 static void
-huxdemp(byte_t *inp, size_t sz, size_t offset)
+splitinput(byte_t *inp, size_t sz)
 {
+	static size_t offset = 0;
 	byte_t line[LINELEN];
 
-	for (byte_t *p = inp; (size_t)(p - inp) < sz; p += LINELEN) {
+	for (size_t i = 0; i < sz; i += LINELEN) {
 		memset(line, 0x0, LINELEN);
 
-		byte_t cpyd = MAX(LINELEN, sz - (p - inp));
-		memcpy(line, p, cpyd);
+		byte_t cpyd = MAX(LINELEN, sz - i);
+		memcpy(line, &inp[i], cpyd);
 		display(line, cpyd, offset);
+		offset += cpyd;
 	}
 }
 
-int
-main(void)
+static void
+huxdemp(char *path)
 {
-	size_t offset = 0;
-	byte_t buf[4096];
+	utf8_state[0] = utf8_state[1] = -1;
 
-	for (size_t r = 1; r > 0; huxdemp(buf, r, offset)) {
-		memset(buf, 0x0, sizeof(buf));
-		r = read(STDIN_FILENO, buf, sizeof(buf));
-		offset += r;
+	byte_t buf[32768];
+	FILE *fp = !strcmp(path, "-") ? stdin : fopen(path, "r");
+
+	for (size_t r = 1; r > 0; splitinput(buf, r))
+		r = fread(buf, sizeof(byte_t), sizeof(buf), fp);
+
+	if (strcmp(path, "-"))
+		fclose(fp);
+
+	printf("\n");
+}
+
+int
+main(int argc, char **argv)
+{
+	options.table = (char **)&t_default;
+	options.ctrls = false;
+
+	ssize_t opt;
+	while ((opt = getopt(argc, argv, "ct:")) != -1) {
+		switch(opt) {
+		break; case 'c':
+			options.ctrls = !options.ctrls;
+		break; case 't':
+			if (!strncmp(optarg, "cp", 2)) {
+				options.table = (char **)&t_cp437;
+			} else if (!strncmp(optarg, "de", 2)) {
+				options.table = (char **)&t_default;
+			} else if (!strncmp(optarg, "cl", 2)) {
+				options.table = NULL;
+			} else {
+				fprintf(stderr, "Invalid option to -t\n");
+				return 1;
+			}
+		break; case '?':
+			fprintf(stderr, "Usage: TODO\n");
+			return 1;
+		}
+	};
+
+	if (argv[optind] == NULL)
+		huxdemp("-");
+
+	for (size_t i = optind; i < (size_t)argc; ++i) {
+		if (argv[i] != NULL)
+			huxdemp(argv[i]);
 	}
+
+	return 0;
 }

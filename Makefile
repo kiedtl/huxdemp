@@ -17,24 +17,34 @@ WARNING  = -Wall -Wpedantic -Wextra -Wold-style-definition -Wmissing-prototypes 
 DEF      = -DVERSION=\"$(VERSION)\"
 INCL     =
 CC       = clang
-CFLAGS   = -Og -g $(DEF) $(INCL) $(WARNING) -funsigned-char
+CFLAGS   = $(DEF) $(INCL) $(WARNING) -funsigned-char
 LD       = bfd
 LDFLAGS  = -fuse-ld=$(LD) -L/usr/include
 
 .PHONY: all
-all: $(NAME)
+all: debug
 
 .PHONY: run
 run: $(NAME)
 	$(CMD)./$(NAME) < test
 
-%.o: %.c
-	@printf "    %-8s%s\n" "CC" $@
-	$(CMD)$(CC) -c $< -o $@ $(CFLAGS)
+.PHONY: debug
+debug: DEBUG_CFLAGS  := -Og -g $(CFLAGS)
+debug: DEBUG_LDFLAGS :=
+debug: $(NAME)
+
+.PHONY: release
+release: RELEASE_CFLAGS  := -Os $(CFLAGS)
+release: RELEASE_LDFLAGS := -flto -s -march=native -mtune=native
+release: $(NAME)
 
 $(NAME): $(OBJ) $(OBJ3) main.c
 	@printf "    %-8s%s\n" "CCLD" $@
 	$(CMD)$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+
+%.o: %.c
+	@printf "    %-8s%s\n" "CC" $@
+	$(CMD)$(CC) -c $< -o $@ $(CFLAGS)
 
 .PHONY: clean
 clean:
