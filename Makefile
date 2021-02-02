@@ -26,7 +26,7 @@ all: debug
 
 .PHONY: run
 run: $(NAME)
-	$(CMD)./$(NAME) < test
+	$(CMD)./$(NAME) examples/ctrlsilm.txt
 
 .PHONY: debug
 debug: DEBUG_CFLAGS  := -Og -g $(CFLAGS)
