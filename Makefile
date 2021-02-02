@@ -38,6 +38,8 @@ release: RELEASE_CFLAGS  := -Os $(CFLAGS)
 release: RELEASE_LDFLAGS := -flto -s -march=native -mtune=native
 release: $(NAME)
 
+main.c: tables.c utf8.c
+
 $(NAME): $(OBJ) $(OBJ3) main.c
 	@printf "    %-8s%s\n" "CCLD" $@
 	$(CMD)$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
