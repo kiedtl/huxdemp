@@ -48,9 +48,17 @@ $(NAME): $(OBJ) $(OBJ3) main.c
 	@printf "    %-8s%s\n" "CC" $@
 	$(CMD)$(CC) -c $< -o $@ $(O_CFLAGS)
 
+%.c: %.unuc unu
+	@printf "    %-8s%s\n" "UNU" $@
+	$(CMD)./unu < $^ > $@
+
+unu: unu.c
+	@printf "    %-8s%s\n" "CCLD" $@
+	$(CMD)$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+
 .PHONY: clean
 clean:
-	rm -rf $(NAME) $(OBJ)
+	rm -rf unu $(NAME) $(OBJ)
 
 .PHONY: deepclean
 deepclean: clean
