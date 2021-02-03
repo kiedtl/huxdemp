@@ -202,6 +202,34 @@ _decide_color(void)
 	return true;
 }
 
+static _Noreturn void
+_usage(char *argv0)
+{
+	printf("Usage: %s [-hV]\n", argv0);
+	printf("       %s [-cu] [-t table] [-C color?] [FILE]...\n", argv0);
+	printf("\n");
+	printf("Flags:\n");
+	printf("    -c  Use Unicode glyphs to display the lower control\n");
+	printf("        chars (0 to 31). E.g. ␀ for NUL, ␖ for SYN (0x16), &c\n");
+	printf("    -u  Highlight sets of bytes that 'belong' to the same UTF-8\n");
+	printf("        encoded Unicode character.\n");
+	printf("    -h  Print this help message and exit.\n");
+	printf("    -V  Print hxd's version and exit.\n");
+	printf("\n");
+	printf("Options:\n");
+	printf("    -t  What 'table' or style to use.\n");
+	printf("        Possible values: `default', `cp437', or `classic'.\n");
+	printf("    -C  When to use fancy terminal formatting.\n");
+	printf("        Possible values: `auto', `always', `never'.\n");
+	printf("\n");
+	printf("Arguments are processed in the same way that cat(1) does: any\n");
+	printf("arguments are treated as files and read, a lone \"-\" causes hxd\n");
+	printf("to read from standard input, &c.\n");
+	printf("\n");
+	printf("See the manpage hxd(1) for more documentation.\n");
+	_Exit(0);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -210,37 +238,35 @@ main(int argc, char **argv)
 	options.color = C_AUTO;
 
 	ssize_t opt;
-	while ((opt = getopt(argc, argv, "cut:C")) != -1) {
+	while ((opt = getopt(argc, argv, "cut:ChV")) != -1) {
 		switch(opt) {
-		break; case 'u':
-			options.utf8  = !options.utf8;
 		break; case 'c':
 			options.ctrls = !options.ctrls;
+		break; case 'u':
+			options.utf8  = !options.utf8;
 		break; case 't':
-			if (!strncmp(optarg, "cp", 2)) {
+			if (!strncmp(optarg, "cp", 2))
 				options.table = (char **)&t_cp437;
-			} else if (!strncmp(optarg, "de", 2)) {
+			else if (!strncmp(optarg, "de", 2))
 				options.table = (char **)&t_default;
-			} else if (!strncmp(optarg, "cl", 2)) {
+			else if (!strncmp(optarg, "cl", 2))
 				options.table = NULL;
-			} else {
-				fprintf(stderr, "Invalid option to -t\n");
-				return 1;
-			}
+			else
+				_usage(argv[0]);
 		break; case 'C':
-			if (!strncmp(optarg, "au", 2)) {
+			if (!strncmp(optarg, "au", 2))
 				options.color = C_AUTO;
-			} else if (!strncmp(optarg, "al", 2)) {
+			else if (!strncmp(optarg, "al", 2))
 				options.color = C_ALWAYS;
-			} else if (!strncmp(optarg, "ne", 2)) {
+			else if (!strncmp(optarg, "ne", 2))
 				options.color = C_NEVER;
-			} else {
-				fprintf(stderr, "Invalid option to -C\n");
-				return 1;
-			}
-		break; case '?':
-			fprintf(stderr, "Usage: TODO\n");
-			return 1;
+			else
+				_usage(argv[0]);
+		break; case 'V':
+			printf("hxd v"VERSION"\n");
+			return 0;
+		break; case 'h': case '?':
+			_usage(argv[0]);
 		}
 	};
 
