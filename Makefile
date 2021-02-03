@@ -29,24 +29,24 @@ run: $(NAME)
 	$(CMD)./$(NAME) examples/ctrlsilm.txt
 
 .PHONY: debug
-debug: DEBUG_CFLAGS  := -Og -g $(CFLAGS)
-debug: DEBUG_LDFLAGS :=
+debug: O_CFLAGS  := -Og -g $(CFLAGS)
+debug: O_LDFLAGS :=
 debug: $(NAME)
 
 .PHONY: release
-release: RELEASE_CFLAGS  := -Os $(CFLAGS)
-release: RELEASE_LDFLAGS := -flto -s -march=native -mtune=native
+release: O_CFLAGS  := -O3 $(CFLAGS)
+release: O_LDFLAGS := -flto -s -march=native -mtune=native
 release: $(NAME)
 
 main.c: tables.c utf8.c
 
 $(NAME): $(OBJ) $(OBJ3) main.c
 	@printf "    %-8s%s\n" "CCLD" $@
-	$(CMD)$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+	$(CMD)$(CC) -o $@ $^ $(O_CFLAGS) $(O_LDFLAGS)
 
 %.o: %.c
 	@printf "    %-8s%s\n" "CC" $@
-	$(CMD)$(CC) -c $< -o $@ $(CFLAGS)
+	$(CMD)$(CC) -c $< -o $@ $(O_CFLAGS)
 
 .PHONY: clean
 clean:
