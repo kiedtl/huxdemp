@@ -9,7 +9,5 @@ huxdemp is a version of hexdump that distinguishes between:
 TODO:
 -----
 
-- -h, -V options
 - manpage
-- usage message
 - literate rewrite
