@@ -249,6 +249,11 @@ the left.
 * `\x1b[37m': Display the text in light grey.
 * `\x1b[m':   Reset the text's color.
 
+  40    72 69 20 61 73 20 68 c3  ab 20 68 61 64 20 73 70    │ri as h·· had sp│
+  50    6f 6b 65 6e 20 62 65 66  6f 72 65 20 69 6e 20 54    │oken before in T│
+  60    c3 af 72 69 6f 6e 2e 20  7f 0a 0a                   │··rion. «__│
+  ^~
+
 ~~~
 	printf("\x1b[37m%4zx\x1b[m    ", offset);
 ~~~
@@ -270,6 +275,11 @@ Display the byte column.
 * If we're "out" of the last utf8 codepoint sequence, reset the background
   color; otherwise, only reset the foreground color and remove the bold
   formatting (if any).
+
+  40    72 69 20 61 73 20 68 c3  ab 20 68 61 64 20 73 70    │ri as h·· had sp│
+  50    6f 6b 65 6e 20 62 65 66  6f 72 65 20 69 6e 20 54    │oken before in T│
+  60    c3 af 72 69 6f 6e 2e 20  7f 0a 0a                   │··rion. «__│
+        ^~~~~~~~~~~~~~~~~~~~~~~  ^~~~~~~~~~~~~~~~~~~~~~~
 
 ~~~
 	for (size_t off = offset, i = 0; i < sz; ++i, ++off) {
@@ -314,7 +324,12 @@ LINELEN - sz   The number of hex digits that weren't printed on this line.
 
 Now print the usual four spaces, a nice Unicode vertical line-drawing glyph, and
 each character for the ASCII column styled with the escape codes specified in
-tables.c:
+tables.c.
+
+  40    72 69 20 61 73 20 68 c3  ab 20 68 61 64 20 73 70    │ri as h·· had sp│
+  50    6f 6b 65 6e 20 62 65 66  6f 72 65 20 69 6e 20 54    │oken before in T│
+  60    c3 af 72 69 6f 6e 2e 20  7f 0a 0a                   │··rion. «__│
+                                                            ^~~~~~~~~~~~~~~~~~
 
 ~~~
 	printf("   │");
@@ -356,45 +371,38 @@ display_nocolor(byte_t *buf, size_t sz, size_t offset)
 }
 ~~~
 
-
-
-~~~
-static void
-splitinput(byte_t *inp, size_t sz)
-{
-	static size_t offset = 0;
-	byte_t line[LINELEN];
-
-	void (*func)(byte_t *, size_t, size_t);
-	func = options._color ? display : display_nocolor;
-
-	for (size_t i = 0; i < sz; i += LINELEN) {
-		memset(line, 0x0, LINELEN);
-
-		byte_t cpyd = MAX(LINELEN, sz - i);
-		memcpy(line, &inp[i], cpyd);
-		(func)(line, cpyd, offset);
-		offset += cpyd;
-	}
-}
-~~~
+The "main main" function that's called from main() after arguments are parsed.
+We just take a path, open it (if it's not stdin), and call `display()' (or
+`display_nocolor()', if colors are disabled) after reading LINELEN bytes.
 
 ~~~
 static void
 huxdemp(char *path)
 {
+	/* Reset UTF8 state for each file. */
 	utf8_state[0] = utf8_state[1] = -1;
 
-	byte_t buf[32768];
-	FILE *fp = !strcmp(path, "-") ? stdin : fopen(path, "r");
+	FILE *fp = !strcmp(path, "-")
+		? stdin : fopen(path, "r");
 
 	if (fp == NULL) {
 		warn("\"%s\"", path);
 		return;
 	}
 
-	for (size_t r = 1; r > 0; splitinput(buf, r))
-		r = fread(buf, sizeof(byte_t), sizeof(buf), fp);
+	void (*func)(byte_t *, size_t, size_t);
+	func = options._color ? display : display_nocolor;
+
+	byte_t buf[LINELEN];
+	size_t offset = 0;
+
+	for (size_t r = 0; ;) {
+		memset(buf, 0x0, sizeof(buf));
+		if (!(r = fread(buf, 1, sizeof(buf), fp)))
+			break;
+		(func)(buf, r, offset);
+		offset += r;
+	}
 
 	if (strcmp(path, "-"))
 		fclose(fp);
@@ -402,6 +410,15 @@ huxdemp(char *path)
 	printf("\n");
 }
 ~~~
+
+Check whether we should use colors, based on whether the user selected `auto',
+`always', or `never'.
+
+If `auto':
+* If stdout is not a terminal, no colors.
+* If the $NO_COLOR environment variable is defined, then no colors.
+* If $TERM is NULL or is set to "dumb", then no colors.
+* Otherwise, enable colors.
 
 ~~~
 static _Bool
@@ -427,6 +444,11 @@ _decide_color(void)
 	return true;
 }
 ~~~
+
+Print a usage string and exit.
+
+TODO: Change the _Noreturn attribute to a macro that checks if the compiler
+supports _Noreturn first.
 
 ~~~
 static _Noreturn void
@@ -458,16 +480,24 @@ _usage(char *argv0)
 }
 ~~~
 
+main main main
+
 ~~~
 int
 main(int argc, char *argv[])
 {
 ~~~
+
+Set some sensible default options.
+
 ~~~
 	options.table = (char **)&t_default;
 	options.ctrls = options.utf8 = false;
 	options.color = C_AUTO;
 ~~~
+
+Parse arguments with `arg.h'. Yes, the macros are ugly. No, I am not going to
+switch back to getopt.
 
 ~~~
 	char *argv0 = argv[0], *optarg;
@@ -505,9 +535,15 @@ main(int argc, char *argv[])
 	} ARGEND
 ~~~
 
+Now check whether we can use colors, depending on the user's input (if any).
+
 ~~~
 	options._color = _decide_color();
 ~~~
+
+Now process 'free' arguments the same way every sane POSIX application does: if
+it's a lone dash, or there are no arguments, read from stdin; otherwise, treat
+the argument as a file.
 
 ~~~
 	if (!argc) {
@@ -517,6 +553,10 @@ main(int argc, char *argv[])
 			huxdemp(*argv);
 	}
 ~~~
+
+I can't think of anything to say here. I'm beginning to wonder whether this
+literate programming experiment was such a great idea.
+
 ~~~
 	return 0;
 }
