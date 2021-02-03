@@ -1,11 +1,13 @@
+#include <err.h>    /* for warn */
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h> /* for getenv */
-#include <unistd.h>
+#include <unistd.h> /* for isatty, STDOUT_FILENO */
 
+#include "arg.h"
 #include "tables.c"
 #include "utf8.c"
 
@@ -170,6 +172,11 @@ huxdemp(char *path)
 	byte_t buf[32768];
 	FILE *fp = !strcmp(path, "-") ? stdin : fopen(path, "r");
 
+	if (fp == NULL) {
+		warn("\"%s\"", path);
+		return;
+	}
+
 	for (size_t r = 1; r > 0; splitinput(buf, r))
 		r = fread(buf, sizeof(byte_t), sizeof(buf), fp);
 
@@ -231,53 +238,53 @@ _usage(char *argv0)
 }
 
 int
-main(int argc, char **argv)
+main(int argc, char *argv[])
 {
 	options.table = (char **)&t_default;
 	options.ctrls = options.utf8 = false;
 	options.color = C_AUTO;
 
-	ssize_t opt;
-	while ((opt = getopt(argc, argv, "cut:ChV")) != -1) {
-		switch(opt) {
-		break; case 'c':
-			options.ctrls = !options.ctrls;
-		break; case 'u':
-			options.utf8  = !options.utf8;
-		break; case 't':
-			if (!strncmp(optarg, "cp", 2))
-				options.table = (char **)&t_cp437;
-			else if (!strncmp(optarg, "de", 2))
-				options.table = (char **)&t_default;
-			else if (!strncmp(optarg, "cl", 2))
-				options.table = NULL;
-			else
-				_usage(argv[0]);
-		break; case 'C':
-			if (!strncmp(optarg, "au", 2))
-				options.color = C_AUTO;
-			else if (!strncmp(optarg, "al", 2))
-				options.color = C_ALWAYS;
-			else if (!strncmp(optarg, "ne", 2))
-				options.color = C_NEVER;
-			else
-				_usage(argv[0]);
-		break; case 'V':
-			printf("hxd v"VERSION"\n");
-			return 0;
-		break; case 'h': case '?':
+	char *argv0 = argv[0], *optarg;
+
+	ARGBEGIN {
+	break; case 'c':
+		options.ctrls = !options.ctrls;
+	break; case 'u':
+		options.utf8  = !options.utf8;
+	break; case 't':
+		optarg = EARGF(_usage(argv0));
+		if (!strncmp(optarg, "cp", 2))
+			options.table = (char **)&t_cp437;
+		else if (!strncmp(optarg, "de", 2))
+			options.table = (char **)&t_default;
+		else if (!strncmp(optarg, "cl", 2))
+			options.table = NULL;
+		else
 			_usage(argv[0]);
-		}
-	};
+	break; case 'C':
+		optarg = EARGF(_usage(argv0));
+		if (!strncmp(optarg, "au", 2))
+			options.color = C_AUTO;
+		else if (!strncmp(optarg, "al", 2))
+			options.color = C_ALWAYS;
+		else if (!strncmp(optarg, "ne", 2))
+			options.color = C_NEVER;
+		else
+			_usage(argv[0]);
+	break; case 'v': case 'V':
+		printf("hxd v"VERSION"\n");
+		return 0;
+	break; case 'h': case '?': default:
+		_usage(argv[0]);
+	} ARGEND
 
 	options._color = _decide_color();
 
-	if (argv[optind] == NULL)
+	if (!argc) {
 		huxdemp("-");
-
-	for (size_t i = optind; i < (size_t)argc; ++i) {
-		if (argv[i] != NULL)
-			huxdemp(argv[i]);
+	} else {
+		for (; *argv; --argc, ++argv)
+			huxdemp(*argv);
 	}
 
 	return 0;
