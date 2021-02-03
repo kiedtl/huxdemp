@@ -3,9 +3,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h> /* for getenv */
 #include <unistd.h>
 
-#include "tables.h"
+#include "tables.c"
 #include "utf8.c"
 
 #define MAX(V, H) ((V) > (H) ? (H) : (V))
@@ -24,6 +25,14 @@ typedef unsigned char byte_t;
 struct {
 	char **table;
 	_Bool ctrls, utf8;
+
+	enum {
+		C_AUTO, C_ALWAYS, C_NEVER,
+	} color;
+
+	/* not directly set by the user. this is determined after
+	 * the user sets `usecolor' */
+	_Bool _color;
 } options;
 
 /* Keep track of what UTF8 codepoint we're printing. This
@@ -67,6 +76,13 @@ _format_char(byte_t b)
 	return (char *)&chbuf;
 }
 
+/*
+ * XXX: should we pad the ASCII column?
+ * Doing so may make it difficult to distinguish between
+ * End-of-input and spaces. On the other hand, padding
+ * makes the output look a bit, uh, ...cleaner, I guess?
+ */
+
 static void
 display(byte_t *buf, size_t sz, size_t offset)
 {
@@ -100,15 +116,32 @@ display(byte_t *buf, size_t sz, size_t offset)
 		printf("%s%s\x1b[m", OR(styles[buf[i]].esc1, ""),
 			_format_char(buf[i]));
 
-	/*
-	 * XXX: should we pad the ASCII column?
-	 * Doing so may make it difficult to distinguish between
-	 * End-of-input and spaces. On the other hand, padding
-	 * makes the output look a bit, uh, ...cleaner, I guess?
-	 */
-
 	printf("│\n");
 }
+
+static void
+display_nocolor(byte_t *buf, size_t sz, size_t offset)
+{
+	printf("%08zx    ", offset);
+
+	for (size_t i = 0; i < sz; ++i) {
+		if (i == (LINELEN / 2))
+			printf(" ");
+		printf("%02hx ", buf[i]);
+	}
+
+	if (LINELEN - sz > 0) {
+		printf("%*s", (int)(LINELEN - sz) * 3, "");
+		if (sz <= (LINELEN / 2))
+			printf(" ");
+	}
+
+	printf("   |");
+	for (size_t i = 0; i < sz; ++i)
+		printf("%s", _format_char(buf[i]));
+	printf("|\n");
+}
+
 
 static void
 splitinput(byte_t *inp, size_t sz)
@@ -116,12 +149,15 @@ splitinput(byte_t *inp, size_t sz)
 	static size_t offset = 0;
 	byte_t line[LINELEN];
 
+	void (*func)(byte_t *, size_t, size_t);
+	func = options._color ? display : display_nocolor;
+
 	for (size_t i = 0; i < sz; i += LINELEN) {
 		memset(line, 0x0, LINELEN);
 
 		byte_t cpyd = MAX(LINELEN, sz - i);
 		memcpy(line, &inp[i], cpyd);
-		display(line, cpyd, offset);
+		(func)(line, cpyd, offset);
 		offset += cpyd;
 	}
 }
@@ -143,14 +179,38 @@ huxdemp(char *path)
 	printf("\n");
 }
 
+static _Bool
+_decide_color(void)
+{
+	if (options.color == C_ALWAYS)
+		return true;
+	if (options.color == C_NEVER)
+		return false;
+
+	if (!isatty(STDOUT_FILENO))
+		return false;
+
+	char *env_NOCOLOR = getenv("NO_COLOR");
+	char *env_TERM = getenv("TERM");
+
+	if (env_NOCOLOR)
+		return false;
+
+	if (!env_TERM || !strcmp(env_TERM, "dumb"))
+		return false;
+
+	return true;
+}
+
 int
 main(int argc, char **argv)
 {
 	options.table = (char **)&t_default;
 	options.ctrls = options.utf8 = false;
+	options.color = C_AUTO;
 
 	ssize_t opt;
-	while ((opt = getopt(argc, argv, "cut:")) != -1) {
+	while ((opt = getopt(argc, argv, "cut:C")) != -1) {
 		switch(opt) {
 		break; case 'u':
 			options.utf8  = !options.utf8;
@@ -167,11 +227,24 @@ main(int argc, char **argv)
 				fprintf(stderr, "Invalid option to -t\n");
 				return 1;
 			}
+		break; case 'C':
+			if (!strncmp(optarg, "au", 2)) {
+				options.color = C_AUTO;
+			} else if (!strncmp(optarg, "al", 2)) {
+				options.color = C_ALWAYS;
+			} else if (!strncmp(optarg, "ne", 2)) {
+				options.color = C_NEVER;
+			} else {
+				fprintf(stderr, "Invalid option to -C\n");
+				return 1;
+			}
 		break; case '?':
 			fprintf(stderr, "Usage: TODO\n");
 			return 1;
 		}
 	};
+
+	options._color = _decide_color();
 
 	if (argv[optind] == NULL)
 		huxdemp("-");
