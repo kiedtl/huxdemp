@@ -25,7 +25,7 @@ LDFLAGS  = -fuse-ld=$(LD) -L/usr/include
 all: debug
 
 .PHONY: run
-run: $(NAME)
+run: debug
 	$(CMD)./$(NAME) examples/ctrlsilm.txt
 
 .PHONY: debug
