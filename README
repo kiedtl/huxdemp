@@ -5,3 +5,11 @@ huxdemp is a version of hexdump that distinguishes between:
 - Printable ASCII characters
 - Other ASCII control characters
 - UTF8 continuation characters
+
+TODO:
+-----
+
+- -h, -V options
+- manpage
+- usage message
+- literate rewrite
