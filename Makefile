@@ -74,10 +74,10 @@ deepclean: clean
 
 .PHONY: install
 install: release
-	$(CMD)install -Dm755 $(NAME)   $(DESTDIR)/$(PREFIX)/bin/$(NAME)
-	$(CMD)install -Dm644 $(NAME).1 $(DESTDIR)/$(PREFIX)/share/man/man1/$(NAME).1
+	install -Dm755 $(NAME)   $(DESTDIR)/$(PREFIX)/bin/$(NAME)
+	install -Dm644 $(NAME).1 $(DESTDIR)/$(PREFIX)/share/man/man1/$(NAME).1
 
 .PHONY: uninstall
 uninstall:
-	$(CMD)rm -f $(DESTDIR)/$(PREFIX)/bin/$(NAME)
-	$(CMD)rm -f $(DESTDIR)/$(PREFIX)/share/man/man1/$(NAME).1
+	rm -f $(DESTDIR)/$(PREFIX)/bin/$(NAME)
+	rm -f $(DESTDIR)/$(PREFIX)/share/man/man1/$(NAME).1
