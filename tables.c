@@ -3,20 +3,16 @@ struct Style {
 } styles[256] = {
 #define _H { "\x1b[33m", "\x1b[33m" } /* ctrl chars */
 #define _L { "\x1b[34m", "\x1b[34m" } /* ctrl chars */
-#define _S { "\x1b[90m", "\x1b[90m" } /* whitespace */
-	[0]   = _S, /* NUL */
+#define _W { "\x1b[90m", "\x1b[90m" } /* whitespace */
+#define _B { "\x1b[31m", "\x1b[31m" } /* blackspace */
+	[0]   = _W,
 	[1]   = _L, [2]   = _L, [3]   = _L, [4]   = _L, [5]   = _L,
-	[6]   = _L, [7]   = _L,
-	[8]   = { "\x1b[31m",   "\x1b[31m" }, /*  BKSP */
-	[9]   = { "\x1b[35m",   "\x1b[35m" }, /*   TAB */
-	[10]  = _S, /* NEWLINE */
+	[6]   = _L, [7]   = _L, [8]   = _B, [9]   = _W, [10]  = _W,
 	[11]  = _L, [12]  = _L, [13]  = _L, [14]  = _L, [15]  = _L,
 	[16]  = _L, [17]  = _L, [18]  = _L, [19]  = _L, [20]  = _L,
 	[21]  = _L, [22]  = _L, [23]  = _L, [24]  = _L, [25]  = _L,
 	[26]  = _L, [27]  = _L, [28]  = _L, [29]  = _L, [30]  = _L,
-	[31]  = _L,
-	[32]  = _S, /* SPACE */
-	[127] = { "\x1b[31m",   "\x1b[31m" }, /*   DEL */
+	[31]  = _L, [32]  = _W, [127] = _B,
 	[128] = _H, [129] = _H, [130] = _H, [131] = _H, [132] = _H,
 	[133] = _H, [134] = _H, [135] = _H, [136] = _H, [137] = _H,
 	[138] = _H, [139] = _H, [140] = _H, [141] = _H, [142] = _H,
@@ -45,6 +41,8 @@ struct Style {
 	[253] = _H, [254] = _H, [255] = _H,
 #undef _H
 #undef _L
+#undef _W
+#undef _B
 };
 
 /* Character for space was ␠, changed back to ' ' for
