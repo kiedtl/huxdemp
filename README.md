@@ -1,3 +1,5 @@
+# huxdemp (aka `hxd`)
+
 huxdemp is a version of hexdump that distinguishes between:
 
 - The NUL Byte
@@ -6,8 +8,9 @@ huxdemp is a version of hexdump that distinguishes between:
 - Other ASCII control characters
 - UTF8 continuation characters
 
-TODO:
------
-
-- manpage
-- literate rewrite
+![scrot](img/mouse.png)
+![scrot](img/mouse2.png)
+![scrot](img/png.png)
+![scrot](img/rnd.png)
+![scrot](img/silm.png)
+![scrot](img/utf8.png)
