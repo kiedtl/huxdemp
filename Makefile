@@ -1,7 +1,11 @@
 CMD      = @
 
 VERSION  = 0.1.0
+
 NAME     = hxd
+DESTDIR  =
+PREFIX   = /usr/local
+
 SRC      =
 SRC3     =
 OBJ      = $(SRC:.c=.o)
@@ -67,3 +71,13 @@ clean:
 .PHONY: deepclean
 deepclean: clean
 	rm -rf $(OBJ3)
+
+.PHONY: install
+install: release
+	$(CMD)install -Dm755 $(NAME)   $(DESTDIR)/$(PREFIX)/bin/$(NAME)
+	$(CMD)install -Dm644 $(NAME).1 $(DESTDIR)/$(PREFIX)/share/man/man1/$(NAME).1
+
+.PHONY: uninstall
+uninstall:
+	$(CMD)rm -f $(DESTDIR)/$(PREFIX)/bin/$(NAME)
+	$(CMD)rm -f $(DESTDIR)/$(PREFIX)/share/man/man1/$(NAME).1
