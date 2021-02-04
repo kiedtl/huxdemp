@@ -288,7 +288,7 @@ Display the byte column.
 		if (utf8_state[0] + utf8_state[1] <= (ssize_t)off)
 			printf("\x1b[m ");
 		else
-			printf("\x1b[97m\x1b[22m ");
+			printf("\x1b[37\x1b[22m ");
 	}
 ~~~
 
