@@ -22,7 +22,7 @@ LD       = bfd
 LDFLAGS  = -fuse-ld=$(LD) -L/usr/include
 
 .PHONY: all
-all: debug
+all: debug $(NAME).1
 
 .PHONY: run
 run: debug
@@ -51,6 +51,10 @@ $(NAME): $(OBJ) $(OBJ3) main.c
 %.c: %.unuc unu
 	@printf "    %-8s%s\n" "UNU" $@
 	$(CMD)./unu < $^ > $@
+
+%.1: %.scd.1
+	@printf "    %-8s%s\n" "SCDOC" $@
+	$(CMD)scdoc < $^ > $@
 
 unu: unu.c
 	@printf "    %-8s%s\n" "CCLD" $@

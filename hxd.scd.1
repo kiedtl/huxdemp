@@ -1,0 +1,176 @@
+hxd(1) "General Something Something Manual"
+
+# NAME
+
+*hxd -* hexadecimal dump, an alternative to hexdump/hd
+
+# SYNOPSIS
+
+*hxd* [-hV]++
+*hxd* [-cu] [-t table] [-C colors?] [FILE]...
+
+# DESCRIPTION
+
+hxd dumps the contents of FILE (or standard input, if FILE is "-") as a
+list of space-separated two-digit hexadecimal values, along with the input
+offset and ASCII representation (if the character is printable).
+
+## Example output
+
+$ *hxd -Cnever -tclassic -l8 < file*
+```
+00000000    48 65 20 02  68 c3 a1 73    |He .h..s|
+00000008    74 65 6e c3  ab 64 20 74    |ten..d t|
+00000010    68 65 6e 20  74 6f 20 41    |hen to A|
+00000018    6c 71 75 61  00 6c 6f 6e    |lqua.lon|
+00000020    64 65 2c 20  e3 be 9b 20    |de, ... |
+00000028    61 6e 64 20  73 70 c3 b8    |and sp..|
+00000030    6b 65 20 0a  03 74 6f 20    |ke ..to |
+00000038    74 68 65 20  54 65 6c 65    |the Tele|
+00000040    72 69 20 61  73 20 68 c3    |ri as h.|
+00000048    ab 20 68 61  64 20 73 70    |. had sp|
+00000050    6f 6b 65 6e  20 62 65 66    |oken bef|
+00000058    6f 72 65 20  69 6e 20 54    |ore in T|
+00000060    c3 af 72 69  6f 6e 2e 20    |..rion. |
+00000068    7f 0a 0a                    |...|
+```
+
+# OPTIONS
+
+*-h*
+	Print a short help message and exit.
+
+*-V*
+	Print hxd's version and exit.
+
+*-c*
+	Use some fancy Unicode characters to display control characters,
+	instead of the usual dot.
+	Examples: ␀ for NUL (0x0), ␡ for DEL (0x7f), ␄ for EOT (0x4), etc
+
+*-u*
+	Highlight sets of bytes in the hex digit column that 'belong' to
+	the same UTF8-encoded Unicode character.
+
+	For example, in the byte sequence *2c 20 e3 be 9b 20 61*, the bytes
+	*e3 be 9b* would be highlighted because they encode the same
+	Unicode character *㾛*.
+
+	Likewise, in the sequence *02 68 c3 a1 73*, the bytes *c3 a1* would
+	be highlighted, because they both encode *á*.
+
+*-l*=_LENGTH_
+	Set the number of bytes to display per line. By default, this is 16.
+
+*-t*=_NAME_
+	The character set to use when displaying the ASCII column.
+
+	- *default*: Uses a *·* for control characters (with a few exceptions), normal ASCII characters for others.
+	- *cp437*: Uses IBM code page 437 (see *CP437*) for all characters.
+	- *classic*: Uses a dot *.* for control characters, normal ASCII for the rest.
+
+*-C*=_WHEN_
+	When to use fancy terminal formatting. _WHEN_ is one of *auto*,
+	*always*, or *never*.
+
+	In auto mode, colors are not used when:
+	- Standard output is not a terminal.
+	- The $NO_COLOR environment variable is set.
+	- $TERM is set to "dumb" or is not set at all.
+
+	When colors are disabled,
+	- No Unicode line-drawing text is used.
+	- The byte offset column is padded with zeros instead of spaces.
+	- No terminal colors or formatting are used.
+
+# CP437
+
+Code page 437 was an extended version of ASCII that originally appeared on
+the IBM PC (see _https://en.wikipedia.org/wiki/Code\_page\_437_).
+
+```
+	  0 1 2 3 4 5 6 7 8 9 a b c d e f
+	0 ␀ ☺ ☻ ♥ ♦ ♣ ♠ • ◛ ○ ◙ ♂ ♀ ♪ ♫ ☼
+	1 ► ◄ ↕ ‼ ¶ § ▬ ↨ ↑ ↓ → ← ∟ ↔ ▲ ▼
+	2   ! " # $ % & ' ( ) * + , - . /
+	3 0 1 2 3 4 5 6 7 8 9 : ; < = > ?
+	4 @ A B C D E F G H I J K L M N O
+	5 P Q R S T U V W X Y Z [ \ ] ^ _
+	6 ` a b c d e f g h i j k l m n o
+	7 p q r s t u v w x y z { | } ~ ⌂
+	8 Ç ü é â ä à å ç ê ë è ï î ì Ä Å
+	9 É æ Æ ô ö ò û ù ÿ Ö Ü ¢ £ ¥ ₧ ƒ
+	a á í ó ú ñ Ñ ª º ¿ ⌐ ¬ ½ ¼ ¡ « »
+	b ░ ▒ ▓ │ ┤ ╡ ╢ ╖ ╕ ╣ ║ ╗ ╝ ╜ ╛ ┐
+	c └ ┴ ┬ ├ ─ ┼ ╞ ╟ ╚ ╔ ╩ ╦ ╠ ═ ╬ ╧
+	d ╨ ╤ ╥ ╙ ╘ ╒ ╓ ╫ ╪ ┘ ┌ █ ▄ ▌ ▐ ▀
+	e α ß Γ π Σ σ µ τ Φ Θ Ω δ ∞ φ ε ∩
+	f ≡ ± ≥ ≤ ⌠ ⌡ ÷ ≈ ° ∙ · √ ⁿ ² ■ □
+```
+
+There are several benefits to using it with hxd (with the *-tcp437* flag);
+for example, because each character has a visually distinct glyph, it
+becomes easier to distinguish patterns in binary data.
+
+# EXAMPLES
+
+*hxd -tcp437 file*
+```
+  00    b6 c5 33 ca f3 2b 31 15  36 f8 81 1e bc cb 78 72    │╢┼3╩≤+1§6°ü▲╝╦xr│
+  10    ce 71 4d d4 17 2b 39 03  a3 a8 cb f5 2d 99 38 fd    │╬qM╘↨+9♥ú¿╦⌡-Ö8²│
+  20    de 5a 1d                                            │▐Z↔|
+```
+
+*hxd -l4 -tclassic file*
+```
+  00    b6 c5  33 ca    |..3.|
+  04    f3 2b  31 15    |.+1.|
+  08    36 f8  81 1e    |6...|
+  0c    bc cb  78 72    |..xr|
+  10    ce 71  4d d4    |.qM.|
+  14    17 2b  39 03    |.+9.|
+  18    a3 a8  cb f5    |....|
+  1c    2d 99  38 fd    |-.8.|
+  20    de 5a  1d       |.Z.|
+```
+
+*hxd -l8 file*
+```
+  00    b6 c5 33 ca  f3 2b 31 15    |··3··+1·|
+  08    36 f8 81 1e  bc cb 78 72    |6·····xr|
+  10    ce 71 4d d4  17 2b 39 03    |·qM··+9·|
+  18    a3 a8 cb f5  2d 99 38 fd    |····-·8·|
+  20    de 5a 1d                    |·Z·|
+```
+
+
+# CAVEATS
+
+The following features are currently missing, and will be implemented in
+the next release:
+
+- hexdump's *-n* and *-s* option.
+- A option to change the order of the columns.
+- A $HXD_COLORS variable to change the display style of the ASCII and byte column.
+- A flag to display the ASCII column in bold.
+
+# AUTHORS
+
+Kiëd Llaentenn <kiedtl@tilde.team>
+
+# REPORTING BUGS
+
+Send bugs reports, hate mail, and other hxd-related bikeshedding to the
+author's email above, or */msg kiedtl* on freenode.
+
+# SEE ALSO
+
+*ascii*(7) _https://en.wikipedia.org/wiki/Code\_page\_437_
+
+The full documentation for *hxd* is not maintained as a Texinfo manual.
+If the *info* and *hxd* programs are properly installed on your system,
+the command
+
+	*info hxd*
+
+should not give you access to the complete manual.
