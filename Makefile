@@ -20,7 +20,7 @@ WARNING  = -Wall -Wpedantic -Wextra -Wold-style-definition -Wmissing-prototypes 
 
 DEF      = -DVERSION=\"$(VERSION)\"
 INCL     =
-CC       = clang
+CC       = cc
 CFLAGS   = $(DEF) $(INCL) $(WARNING) -funsigned-char
 LD       = bfd
 LDFLAGS  = -fuse-ld=$(LD) -L/usr/include
