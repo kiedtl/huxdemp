@@ -154,34 +154,6 @@ This is reset after each file is processed, for obvious reasons.
 static ssize_t utf8_state[] = { -1, -1 };
 ~~~
 
-The colors used to highlight bytes that belong to the same codepoint. These are
-all shades of yellow from the terminal's 256 color palette.
-
-NOTE: You can view all the of the 256-color terminal palette with this shell
-script:
-
-	#!/bin/sh
-	# See https://github.com/kiedtl/bin/, file `256'
-	t="Lorem \033[1mipsum"
-	i=0
-	while [ $i -le 255 ]; do
-		printf "${i}\033[4D\033[4C"
-		printf "\033[38;5;${i}m $t \033[0m "
-		printf "\033[48;5;${i}m\033[30m $t \033[0m "
-		printf "\033[48;5;${i}m $t \033[0m "
-		printf "\033[48;5;${i}m\033[K\033[m\n"
-		i=$((i+1))
-	done
-
-The first value, 0, is a `dummy' value and is used to highlight single-byte
-codepoints.
-
-~~~
-static const byte_t utf8bg[] = {
-	0, 230, 229, 228, 227, 226, 189
-};
-~~~
-
 This function is run before each item of the byte column is printed to update
 `utf8_state'.  It only actually updates `utf8_state' if either the first field
 is -1, or we've passed the codepoint utf8_state keeps track of.
@@ -259,9 +231,7 @@ Display the byte column.
   columns.
 
 * Print an escape sequence to set the background of the hex digits depending on
-  whether it belongs to an encoded utf8 codepoint. The color will be anything
-  from very bright yellow (for 6-byte sequences) to creamy white (for 2-byte
-  sequences).
+  whether it belongs to an encoded utf8 codepoint.
 
 * Print the byte's hex digits, using the styling specified in tables.c.
 
@@ -281,9 +251,11 @@ Display the byte column.
 		if (i == (options.linelen / 2))
 			printf(" ");
 
-		printf("\x1b[48;5;%dm%s%02hx",
-			options.utf8 ? utf8bg[utf8_state[1]] : 0,
-			OR(styles[buf[i]].esc2, ""), buf[i]);
+		size_t bg = 0, fg = styles[buf[i]].hex;
+		if (options.utf8 && utf8_state[1] > 0)
+			bg = 100, fg = 97;
+
+		printf("\x1b[%zum\x1b[%zum%02hx", bg, fg, buf[i]);
 
 		if (utf8_state[0] + utf8_state[1] <= (ssize_t)off)
 			printf("\x1b[m ");
