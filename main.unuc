@@ -120,15 +120,6 @@ really capable of holding a character
 typedef unsigned char byte_t;
 ~~~
 
-The number of bytes to display on a single line. `16' is the default for
-most hexdumping programs, so I use it here.
-
-TODO: make this configurable via a command-line flag.
-
-~~~
-#define LINELEN    16
-~~~
-
 A single struct that holds all the options for this program.
 `table' is set by the `-t' flag, `cntrls' is set by the `-c' flag, etc.
 
@@ -145,6 +136,8 @@ struct {
 	} color;
 
 	_Bool _color;
+
+	size_t linelen;
 } options;
 ~~~
 
@@ -285,7 +278,7 @@ Display the byte column.
 	for (size_t off = offset, i = 0; i < sz; ++i, ++off) {
 		_utf8state((ssize_t)off, buf[i]);
 
-		if (i == (LINELEN / 2))
+		if (i == (options.linelen / 2))
 			printf(" ");
 
 		printf("\x1b[48;5;%dm%s%02hx",
@@ -315,9 +308,9 @@ LINELEN - sz   The number of hex digits that weren't printed on this line.
 
 ~~~
 	printf("\x1b[m");
-	if (LINELEN - sz > 0) {
-		printf("%*s", (int)(LINELEN - sz) * 3, "");
-		if (sz <= (LINELEN / 2))
+	if (options.linelen - sz > 0) {
+		printf("%*s", (int)(options.linelen - sz) * 3, "");
+		if (sz <= (options.linelen / 2))
 			printf(" ");
 	}
 ~~~
@@ -353,14 +346,14 @@ display_nocolor(byte_t *buf, size_t sz, size_t offset)
 	printf("%08zx    ", offset);
 
 	for (size_t i = 0; i < sz; ++i) {
-		if (i == (LINELEN / 2))
+		if (i == (options.linelen / 2))
 			printf(" ");
 		printf("%02hx ", buf[i]);
 	}
 
-	if (LINELEN - sz > 0) {
-		printf("%*s", (int)(LINELEN - sz) * 3, "");
-		if (sz <= (LINELEN / 2))
+	if (options.linelen - sz > 0) {
+		printf("%*s", (int)(options.linelen - sz) * 3, "");
+		if (sz <= (options.linelen / 2))
 			printf(" ");
 	}
 
@@ -393,7 +386,7 @@ huxdemp(char *path)
 	void (*func)(byte_t *, size_t, size_t);
 	func = options._color ? display : display_nocolor;
 
-	byte_t buf[LINELEN];
+	byte_t buf[options.linelen];
 	size_t offset = 0;
 
 	for (size_t r = 0; ;) {
@@ -466,6 +459,7 @@ _usage(char *argv0)
 	printf("    -V  Print hxd's version and exit.\n");
 	printf("\n");
 	printf("Options:\n");
+	printf("    -l  Number of bytes to be displayed on a line. (default: 16)\n");
 	printf("    -t  What 'table' or style to use.\n");
 	printf("        Possible values: `default', `cp437', or `classic'.\n");
 	printf("    -C  When to use fancy terminal formatting.\n");
@@ -494,15 +488,19 @@ Set some sensible default options.
 	options.table = (char **)&t_default;
 	options.ctrls = options.utf8 = false;
 	options.color = C_AUTO;
+	options.linelen = 16;
 ~~~
 
 Parse arguments with `arg.h'. Yes, the macros are ugly. No, I am not going to
 switch back to getopt.
 
 ~~~
-	char *argv0 = argv[0], *optarg;
+	char *optarg;
 
 	ARGBEGIN {
+	break; case 'l':
+		optarg = EARGF(_usage(argv0));
+		options.linelen = strtol(optarg, NULL, 0);
 	break; case 'c':
 		options.ctrls = !options.ctrls;
 	break; case 'u':
@@ -516,7 +514,7 @@ switch back to getopt.
 		else if (!strncmp(optarg, "cl", 2))
 			options.table = NULL;
 		else
-			_usage(argv[0]);
+			_usage(argv0);
 	break; case 'C':
 		optarg = EARGF(_usage(argv0));
 		if (!strncmp(optarg, "au", 2))
@@ -526,12 +524,12 @@ switch back to getopt.
 		else if (!strncmp(optarg, "ne", 2))
 			options.color = C_NEVER;
 		else
-			_usage(argv[0]);
+			_usage(argv0);
 	break; case 'v': case 'V':
 		printf("hxd v"VERSION"\n");
 		return 0;
 	break; case 'h': case '?': default:
-		_usage(argv[0]);
+		_usage(argv0);
 	} ARGEND
 ~~~
 
