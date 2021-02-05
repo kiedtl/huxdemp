@@ -75,7 +75,7 @@ deepclean: clean
 	rm -rf $(OBJ3)
 
 .PHONY: install
-install: release
+install: release $(NAME).1
 	install -Dm755 $(NAME)   $(DESTDIR)/$(PREFIX)/bin/$(NAME)
 	install -Dm644 $(NAME).1 $(DESTDIR)/$(PREFIX)/share/man/man1/$(NAME).1
 
