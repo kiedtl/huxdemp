@@ -41,7 +41,9 @@ bugs and snakes, and count the directories in your $HOME after you use
 
 ---
 
-Download a binary from the releases, and move it into your $PATH.
+Download a binary tarball from the releases, unpack, and move the
+executable into your $PATH and the manpage (`hxd.1`) to someplace like
+`/usr/local/share/man/man1/hxd.1`.
 
 Or, to build from source, clone (or download a tarball from the releases),
 make, and install:
