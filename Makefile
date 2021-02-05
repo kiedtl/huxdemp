@@ -1,8 +1,9 @@
 CMD      = @
 
 VERSION  = 0.1.0
-
 NAME     = hxd
+PKGNAME  = $(NAME)-$(shell uname -s)-$(shell uname -m)-$(VERSION)
+
 DESTDIR  =
 PREFIX   = /usr/local
 
@@ -65,8 +66,10 @@ unu: unu.c
 	$(CMD)$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 .PHONY: clean
+clean: PKGNAME := $(NAME)-$(shell arch)-$(VERSION)
 clean:
-	rm -rf unu $(NAME) $(OBJ)
+	rm -rf unu main.c $(NAME) $(OBJ)
+	rm -rf $(PKGNAME) $(PKGNAME).tar.xz
 
 .PHONY: deepclean
 deepclean: clean
@@ -81,3 +84,11 @@ install: release
 uninstall:
 	rm -f $(DESTDIR)/$(PREFIX)/bin/$(NAME)
 	rm -f $(DESTDIR)/$(PREFIX)/share/man/man1/$(NAME).1
+
+.PHONY: dist
+dist: release $(NAME).1
+	$(CMD)mkdir $(PKGNAME)
+	$(CMD)cp $(NAME)   $(PKGNAME)
+	$(CMD)cp $(NAME).1 $(PKGNAME)
+	$(CMD)tar -cf - $(PKGNAME) | xz -qcT0 > $(PKGNAME).tar.xz
+	$(CMD)rm -rf $(PKGNAME)
