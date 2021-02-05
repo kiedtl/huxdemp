@@ -41,6 +41,10 @@ bugs and snakes, and count the directories in your $HOME after you use
 
 ---
 
+**NOTE**: **If you are seeing garbled output on `urxvt` or other terminals,
+you may want to try building from source.** A few bugs were fixed after
+`0.1.0` was released that only crops up on those terminals.
+
 Download a binary tarball from the releases, unpack, and move the
 executable into your $PATH and the manpage (`hxd.1`) to someplace like
 `/usr/local/share/man/man1/hxd.1`.
