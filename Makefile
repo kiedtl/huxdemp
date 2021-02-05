@@ -66,7 +66,6 @@ unu: unu.c
 	$(CMD)$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 .PHONY: clean
-clean: PKGNAME := $(NAME)-$(shell arch)-$(VERSION)
 clean:
 	rm -rf unu main.c $(NAME) $(OBJ)
 	rm -rf $(PKGNAME) $(PKGNAME).tar.xz
