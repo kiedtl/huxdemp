@@ -77,6 +77,8 @@ their repositories.
 - A flag to "mark" the nth byte of the input.
 - Use `pledge(2)`/`unveil(2)` on OpenBSD.
 - Support Winbl^B^B^Kdows 10.
+- Make unu use `#line` preprocessor directive in order to make compilation
+  errors more readable.
 
 ### License
 
