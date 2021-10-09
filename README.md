@@ -33,6 +33,12 @@ bugs and snakes, and count the directories in your $HOME after you use
 
 ### Install
 
+#### Arch Linux
+
+```
+yay hxd
+```
+
 #### Requirements
 
 - A POSIX system. (Windows is not supported at present.)
