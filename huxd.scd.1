@@ -68,7 +68,9 @@ $ *huxd -Cnever -tclassic -l8 < file*
 *-t*=_NAME_
 	The character set to use when displaying the ASCII column.
 
-	- *default*: Uses a *·* for control characters (with a few exceptions), normal ASCII characters for others.
+	- *default*: Uses a *·* for control characters < 0x20 (SPACE), *×* for
+	  control characters ≥ 0x1F (DEL) (with a few exceptions), and normal
+	  ASCII characters for others.
 	- *cp437*: Uses IBM code page 437 (see *CP437*) for all characters.
 	- *classic*: Uses a dot *.* for control characters, normal ASCII for the rest.
 
@@ -150,9 +152,9 @@ becomes easier to distinguish patterns in binary data.
 # CAVEATS
 
 The following features are currently missing, and will be implemented in
-the next release:
+future releases:
 
-- hexdump's *-n* and *-s* option.
+- hexdump's *-n* option.
 - A option to change the order of the columns.
 - A $HXD_COLORS variable to change the display style of the ASCII and byte column.
 - A flag to display the ASCII column in bold.
