@@ -33,30 +33,29 @@ bugs and snakes, and count the directories in your $HOME after you use
 
 ### Install
 
-#### Arch Linux
-
-```
-yay hxd
-```
-
 #### Requirements
 
 - A POSIX system. (Windows is not supported at present.)
 - [`scdoc`](https://git.sr.ht/~sircmpwn/scdoc) (*for building from source*)
 - A C99 compiler and GNU Make (*for building from source*)
 
----
+#### Arch Linux
 
-**NOTE**: **If you are seeing garbled output on `urxvt` or other terminals,
-you may want to try building from source.** A few bugs were fixed after
-`0.1.0` was released that only crops up on those terminals.
+```
+yay hxd
+```
+
+#### Download
 
 Download a binary tarball from the releases, unpack, and move the
 executable into your $PATH and the manpage (`hxd.1`) to someplace like
 `/usr/local/share/man/man1/hxd.1`.
 
-Or, to build from source, clone (or download a tarball from the releases),
-make, and install:
+---
+
+#### Building from source
+
+Clone (or download a tarball from the releases), make, and install:
 
 ```
 $ cd huxdemp
@@ -70,9 +69,6 @@ $ sudo make install
 $
 ```
 
-As far as I am aware, there are no distributions that carry `huxdemp` in
-their repositories.
-
 ### TODO
 
 - hexdump's **-n* and *-s* option.
@@ -81,10 +77,12 @@ their repositories.
   column.
 - A flag to display the ASCII column in bold.
 - A flag to "mark" the nth byte of the input.
-- Use `pledge(2)`/`unveil(2)` on OpenBSD.
-- Support Winbl^B^B^Kdows 10.
 - Make unu use `#line` preprocessor directive in order to make compilation
   errors more readable.
+- Automatically pipe output through $PAGER when necessary.
+- Unicode rune pane.
+- Use `pledge(2)`/`unveil(2)` on OpenBSD.
+- Support Windows 10/11.
 
 ### License
 
