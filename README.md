@@ -72,7 +72,7 @@ $
 ### TODO
 
 - A flag to "mark" the nth byte of the input.
-- hexdump's **-n* and *-s* option.
+- hexdump's *-n* option.
 - Automatically pipe output through $PAGER when necessary.
 - An option to change the order/format of the columns.
 - A flag to display the ASCII column in bold.

@@ -83,8 +83,9 @@ TODO: remove the requirement for `unistd.h'.
 Now to include other source files.
 
 * arg.h: The ubiquitious arg.h you would find in many suckless.org projects.
-  It's used to parse arguments in place of getopt, as I find it much easier
-  to work with.
+  It's used to parse arguments in place of getopt, as I find it slightly easier
+  to work with. However, it does things the strictly POSIX way and refuses to
+  parse flags after a non-flag argument was recieved.
 
 * tables.c: Various 'tables' of strings that are used to display characters.
   E.g. "·" for 0x12, "A" for 0x41, etc.
@@ -111,10 +112,8 @@ Some utility macros.
 #define OR(A, B)  ((A) ? (A) : (B))
 ~~~
 
-Shut up, its for for readibility guis !!!
-
-And anyways, programmars nowidays should stahp pretending like C's `char' is
-really capable of holding a character
+People these days should stop pretending that C's `char' is really capable of
+holding a character.
 
 ~~~
 typedef unsigned char byte_t;
@@ -138,6 +137,7 @@ struct {
 	_Bool _color;
 
 	size_t linelen;
+	uint64_t offset;
 } options;
 ~~~
 
@@ -180,7 +180,7 @@ column.
   that table (if the entry exists).
 
 * Otherwise, return the byte itself (unless it's unprintable, in which case use
-  a period.
+  a period).
 
 ~~~
 static inline char *
@@ -199,8 +199,8 @@ _format_char(byte_t b)
 }
 ~~~
 
-Now the juicy bit -- the function which actually does the dirty work of
-displaying the user's garbage.
+Now the juicy bit -- the function which actually does the work of displaying the
+input.
 
 ~~~
 static void
@@ -361,6 +361,17 @@ huxdemp(char *path)
 	byte_t buf[options.linelen];
 	size_t offset = 0;
 
+	if (options.offset != 0) {
+		int r = fseek(fp, (long)options.offset, SEEK_SET);
+		if (r == -1) {
+			warn("\"%s\": Couldn't seek to offset %ld",
+				path, options.offset);
+			return;
+		} else {
+			offset = options.offset;
+		}
+	}
+
 	for (size_t r = 0; ;) {
 		memset(buf, 0x0, sizeof(buf));
 		if (!(r = fread(buf, 1, sizeof(buf), fp)))
@@ -420,7 +431,7 @@ static _Noreturn void
 _usage(char *argv0)
 {
 	printf("Usage: %s [-hV]\n", argv0);
-	printf("       %s [-cu] [-t table] [-C color?] [FILE]...\n", argv0);
+	printf("       %s [-cu] [-s offset] [-t table] [-C color?] [FILE]...\n", argv0);
 	printf("\n");
 	printf("Flags:\n");
 	printf("    -c  Use Unicode glyphs to display the lower control\n");
@@ -432,6 +443,7 @@ _usage(char *argv0)
 	printf("\n");
 	printf("Options:\n");
 	printf("    -l  Number of bytes to be displayed on a line. (default: 16)\n");
+	printf("    -s  Number of bytes to skip from the start of the input. (default: 0)\n");
 	printf("    -t  What 'table' or style to use.\n");
 	printf("        Possible values: `default', `cp437', or `classic'.\n");
 	printf("    -C  When to use fancy terminal formatting.\n");
@@ -473,6 +485,9 @@ switch back to getopt.
 	break; case 'l':
 		optarg = EARGF(_usage(argv0));
 		options.linelen = strtol(optarg, NULL, 0);
+	break; case 's':
+		optarg = EARGF(_usage(argv0));
+		options.offset = strtol(optarg, NULL, 0);
 	break; case 'c':
 		options.ctrls = !options.ctrls;
 	break; case 'u':
