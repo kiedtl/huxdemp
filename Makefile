@@ -55,7 +55,7 @@ $(NAME): $(OBJ) $(OBJ3) main.c
 
 %.c: %.unuc unu
 	@printf "    %-8s%s\n" "UNU" $@
-	$(CMD)./unu < $^ > $@
+	$(CMD)./unu $< < $< > $@
 
 %.1: %.scd.1
 	@printf "    %-8s%s\n" "SCDOC" $@

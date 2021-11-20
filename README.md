@@ -71,8 +71,6 @@ $
 
 ### TODO
 
-- Make unu use `#line` preprocessor directive in order to make compilation
-  errors more readable.
 - A flag to "mark" the nth byte of the input.
 - hexdump's **-n* and *-s* option.
 - Automatically pipe output through $PAGER when necessary.
