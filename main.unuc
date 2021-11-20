@@ -481,11 +481,16 @@ main(int argc, char *argv[])
 
 Set some sensible default options.
 
+Of course, since `options` is a global variable, it's automatically zeroed out,
+but we're setting some options to zero anyway here to be explicit.
+
 ~~~
 	options.table = (char **)&t_default;
 	options.ctrls = options.utf8 = false;
 	options.color = C_AUTO;
 	options.linelen = 16;
+	options.offset = 0;
+	options.length = 0;
 ~~~
 
 Parse arguments with `arg.h'. Yes, the macros are ugly. No, I am not going to
