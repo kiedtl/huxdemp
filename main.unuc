@@ -108,7 +108,8 @@ Makefile.
 Some utility macros.
 
 ~~~
-#define MAX(V, H) ((V) > (H) ? (H) : (V))
+#define MAX(V, H) ((V) > (H) ? (V) : (H))
+#define MIN(V, H) ((V) < (H) ? (V) : (H))
 #define OR(A, B)  ((A) ? (A) : (B))
 ~~~
 
@@ -138,6 +139,7 @@ struct {
 
 	size_t linelen;
 	uint64_t offset;
+	uint64_t length;
 } options;
 ~~~
 
@@ -372,9 +374,18 @@ huxdemp(char *path)
 		}
 	}
 
+	size_t start_offset = offset;
+
 	for (size_t r = 0; ;) {
 		memset(buf, 0x0, sizeof(buf));
-		if (!(r = fread(buf, 1, sizeof(buf), fp)))
+
+		size_t max_read = sizeof(buf);
+		if (options.length > 0) {
+			size_t bytes_left = options.length - (offset - start_offset);
+			max_read = MIN(sizeof(buf), bytes_left);
+		}
+
+		if (!(r = fread(buf, 1, max_read, fp)))
 			break;
 		(func)(buf, r, offset);
 		offset += r;
@@ -431,7 +442,8 @@ static _Noreturn void
 _usage(char *argv0)
 {
 	printf("Usage: %s [-hV]\n", argv0);
-	printf("       %s [-cu] [-s offset] [-t table] [-C color?] [FILE]...\n", argv0);
+	printf("       %s [-cu] [-n length] [-s offset] [-t table] [-C color?] [FILE]...\n",
+		argv0);
 	printf("\n");
 	printf("Flags:\n");
 	printf("    -c  Use Unicode glyphs to display the lower control\n");
@@ -443,6 +455,7 @@ _usage(char *argv0)
 	printf("\n");
 	printf("Options:\n");
 	printf("    -l  Number of bytes to be displayed on a line. (default: 16)\n");
+	printf("    -n  Maximum number of bytes to be read (can be used with -s flag).\n");
 	printf("    -s  Number of bytes to skip from the start of the input. (default: 0)\n");
 	printf("    -t  What 'table' or style to use.\n");
 	printf("        Possible values: `default', `cp437', or `classic'.\n");
@@ -488,6 +501,9 @@ switch back to getopt.
 	break; case 's':
 		optarg = EARGF(_usage(argv0));
 		options.offset = strtol(optarg, NULL, 0);
+	break; case 'n':
+		optarg = EARGF(_usage(argv0));
+		options.length = strtol(optarg, NULL, 0);
 	break; case 'c':
 		options.ctrls = !options.ctrls;
 	break; case 'u':
