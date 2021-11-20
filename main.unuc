@@ -428,7 +428,7 @@ _usage(char *argv0)
 	printf("    -u  Highlight sets of bytes that 'belong' to the same UTF-8\n");
 	printf("        encoded Unicode character.\n");
 	printf("    -h  Print this help message and exit.\n");
-	printf("    -V  Print hxd's version and exit.\n");
+	printf("    -V  Print huxd's version and exit.\n");
 	printf("\n");
 	printf("Options:\n");
 	printf("    -l  Number of bytes to be displayed on a line. (default: 16)\n");
@@ -438,10 +438,10 @@ _usage(char *argv0)
 	printf("        Possible values: `auto', `always', `never'.\n");
 	printf("\n");
 	printf("Arguments are processed in the same way that cat(1) does: any\n");
-	printf("arguments are treated as files and read, a lone \"-\" causes hxd\n");
+	printf("arguments are treated as files and read, a lone \"-\" causes huxd\n");
 	printf("to read from standard input, &c.\n");
 	printf("\n");
-	printf("See the manpage hxd(1) for more documentation.\n");
+	printf("See the manpage huxd(1) for more documentation.\n");
 	_Exit(0);
 }
 ~~~
@@ -498,7 +498,7 @@ switch back to getopt.
 		else
 			_usage(argv0);
 	break; case 'v': case 'V':
-		printf("hxd v"VERSION"\n");
+		printf("huxd v"VERSION"\n");
 		return 0;
 	break; case 'h': case '?': default:
 		_usage(argv0);

@@ -1,23 +1,23 @@
-hxd(1) "General Something Something Manual"
+huxd(1) "General Something Something Manual"
 
 # NAME
 
-*hxd -* hexadecimal dump, an alternative to hexdump/hd
+*huxd -* hexadecimal dump, an alternative to hexdump/hd
 
 # SYNOPSIS
 
-*hxd* [-hV]++
-*hxd* [-cu] [-t table] [-C colors?] [FILE]...
+*huxd* [-hV]++
+*huxd* [-cu] [-t table] [-C colors?] [FILE]...
 
 # DESCRIPTION
 
-hxd dumps the contents of FILE (or standard input, if FILE is "-") as a
+huxd dumps the contents of FILE (or standard input, if FILE is "-") as a
 list of space-separated two-digit hexadecimal values, along with the input
 offset and ASCII representation (if the character is printable).
 
 ## Example output
 
-$ *hxd -Cnever -tclassic -l8 < file*
+$ *huxd -Cnever -tclassic -l8 < file*
 ```
 00000000    48 65 20 02  68 c3 a1 73    |He .h..s|
 00000008    74 65 6e c3  ab 64 20 74    |ten..d t|
@@ -41,7 +41,7 @@ $ *hxd -Cnever -tclassic -l8 < file*
 	Print a short help message and exit.
 
 *-V*
-	Print hxd's version and exit.
+	Print huxd's version and exit.
 
 *-c*
 	Use some fancy Unicode characters to display control characters,
@@ -108,20 +108,20 @@ the IBM PC (see _https://en.wikipedia.org/wiki/Code\_page\_437_).
 	f ≡ ± ≥ ≤ ⌠ ⌡ ÷ ≈ ° ∙ · √ ⁿ ² ■ □
 ```
 
-There are several benefits to using it with hxd (with the *-tcp437* flag);
+There are several benefits to using it with huxd (with the *-tcp437* flag);
 for example, because each character has a visually distinct glyph, it
 becomes easier to distinguish patterns in binary data.
 
 # EXAMPLES
 
-*hxd -tcp437 file*
+*huxd -tcp437 file*
 ```
   00    b6 c5 33 ca f3 2b 31 15  36 f8 81 1e bc cb 78 72    │╢┼3╩≤+1§6°ü▲╝╦xr│
   10    ce 71 4d d4 17 2b 39 03  a3 a8 cb f5 2d 99 38 fd    │╬qM╘↨+9♥ú¿╦⌡-Ö8²│
   20    de 5a 1d                                            │▐Z↔|
 ```
 
-*hxd -l4 -tclassic file*
+*huxd -l4 -tclassic file*
 ```
   00    b6 c5  33 ca    |..3.|
   04    f3 2b  31 15    |.+1.|
@@ -134,7 +134,7 @@ becomes easier to distinguish patterns in binary data.
   20    de 5a  1d       |.Z.|
 ```
 
-*hxd -l8 file*
+*huxd -l8 file*
 ```
   00    b6 c5 33 ca  f3 2b 31 15    |··3··+1·|
   08    36 f8 81 1e  bc cb 78 72    |6·····xr|
@@ -161,17 +161,17 @@ Kiëd Llaentenn <kiedtl@tilde.team>
 
 # REPORTING BUGS
 
-Send bugs reports, hate mail, and other hxd-related bikeshedding to the
-author's email above, or */msg kiedtl* on freenode.
+Send bugs reports, hate mail, and other huxd-related bikeshedding to the
+author's email above, or */msg cot* on libera.chat.
 
 # SEE ALSO
 
 *ascii*(7) _https://en.wikipedia.org/wiki/Code\_page\_437_
 
-The full documentation for *hxd* is not maintained as a Texinfo manual.
-If the *info* and *hxd* programs are properly installed on your system,
+The full documentation for *huxd* is not maintained as a Texinfo manual.
+If the *info* and *huxd* programs are properly installed on your system,
 the command
 
-	*info hxd*
+	*info huxd*
 
 should not give you access to the complete manual.

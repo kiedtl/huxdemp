@@ -1,7 +1,7 @@
 CMD      = @
 
 VERSION  = 0.1.0
-NAME     = hxd
+NAME     = huxd
 PKGNAME  = $(NAME)-$(shell uname -s)-$(shell uname -m)-$(VERSION)
 
 DESTDIR  =

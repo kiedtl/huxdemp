@@ -1,6 +1,6 @@
 ![logo](img/logo.png)
 
-## huxdemp (aka `hxd`)
+## huxdemp (aka `huxd`)
 
 `huxdemp` is an advanced version of the venerable `hexdump` that uses
 colors, bolding, and other terminal formatting to distinguish between `nul`
@@ -13,12 +13,12 @@ bugs and snakes, and count the directories in your $HOME after you use
 
 ### Seeing is believing
 
-![hxd reading /dev/input/mouse](img/mouse.png)
-![hxd reading /dev/input/mouse](img/mouse2.png)
-![hxd reading part of a PNG image](img/png.png)
-![hxd reading /dev/random](img/rnd.png)
-![hxd reading a snippet from The Silmarillion](img/silm.png)
-![hxd reading some UTF8 text, demonstrating the -u flag](img/utf8.png)
+![huxd reading /dev/input/mouse](img/mouse.png)
+![huxd reading /dev/input/mouse](img/mouse2.png)
+![huxd reading part of a PNG image](img/png.png)
+![huxd reading /dev/random](img/rnd.png)
+![huxd reading a snippet from The Silmarillion](img/silm.png)
+![huxd reading some UTF8 text, demonstrating the -u flag](img/utf8.png)
 
 ### Features/Anti-features
 
@@ -42,14 +42,14 @@ bugs and snakes, and count the directories in your $HOME after you use
 #### Arch Linux
 
 ```
-yay hxd
+yay huxd
 ```
 
 #### Download
 
 Download a binary tarball from the releases, unpack, and move the
-executable into your $PATH and the manpage (`hxd.1`) to someplace like
-`/usr/local/share/man/man1/hxd.1`.
+executable into your $PATH and the manpage (`huxd.1`) to someplace like
+`/usr/local/share/man/man1/huxd.1`.
 
 ---
 
@@ -62,7 +62,7 @@ $ cd huxdemp
 $ make
     CCLD    unu
     UNU     main.c
-    CCLD    hxd
+    CCLD    huxd
     SCDOC  
 $ sudo make install
 [sudo] password for kiedtl:
