@@ -8,28 +8,33 @@ bytes, ASCII whitespace, UTF8-control characters, ASCII control characters,
 and normal printable bytes.
 
 **NOTE**: This should be considered `beta` software. Expect a multitude of
-bugs and snakes, and count the directories in your $HOME after you use
-`huxdemp`.
+bugs and snakes, and count the directories in your `$HOME` after you use
+this tool.
+
+### Features/Anti-features
+
+- "Highlights" bytes that "belong" to the same UTF8-encoded character.
+- Ability to print characters in IBM's code page 437 (see screenshots).
+- Ability to print control characters using fancy Unicode glyphs (e.g. ␀
+  for NUL, ␌ for FF (form feed), etc).
+- Automatic display through `less(1)` when needed.
+- Readable source, written in literate programming using a dialect of `unu`
+  from [RetroForth](https://forth.works/).
+
+### Anti-features
+
+- No Windows support.
+- No octal dumping (this *might* be added later).
+- Not written in Rust. (The horrors!)
 
 ### Seeing is believing
 
+![huxd reading a snippet from The Silmarillion](img/silm.png)
+![huxd reading some UTF8 text, demonstrating the -u flag](img/utf8.png)
 ![huxd reading /dev/input/mouse](img/mouse.png)
 ![huxd reading /dev/input/mouse](img/mouse2.png)
 ![huxd reading part of a PNG image](img/png.png)
 ![huxd reading /dev/random](img/rnd.png)
-![huxd reading a snippet from The Silmarillion](img/silm.png)
-![huxd reading some UTF8 text, demonstrating the -u flag](img/utf8.png)
-
-### Features/Anti-features
-
-- No octal dumping (this *might* be added later).
-- "Highlights" bytes that "belong" to the same UTF8-encoded character.
-- Readable source, written in literate programming using a dialect of `unu`
-  from [RetroForth](https://forth.works/).
-- Ability to print characters in IBM's code page 437 (see screenshots).
-- Ability to print control characters using fancy Unicode glyphs (e.g. ␀
-  for NUL, ␌ for FF (form feed), etc).
-- Not written in Rust. (The horrors!)
 
 ### Install
 
