@@ -654,7 +654,11 @@ Close pager_fp, waiting for the pager to exit.
 
 ~~~
 	if (pager_fp != stdout) {
-		pclose(pager_fp);
+		int r = pclose(pager_fp);
+		if (r != 0) {
+			warnx("warn: less exited with an error, possibly because it couldn't be found.");
+			warnx("hint: use `-P never` to disable using less(1).");
+		}
 	}
 
 	return 0;
