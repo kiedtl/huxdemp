@@ -123,6 +123,8 @@ $
 
 - A flag to "mark" the nth byte of the input.
 - An option to change the order/format of the columns.
+  - Allow splitting the ASCII column into half. E.g., first-byte, first-ascii,
+    second-byte, second-ascii
 - A flag to display the ASCII column in bold.
 - A $HXD_COLORS variable to change the display style of the ASCII/byte column.
 - Unicode rune pane.
