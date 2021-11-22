@@ -68,6 +68,7 @@ unu: unu.c
 .PHONY: clean
 clean:
 	rm -rf unu main.c $(NAME) $(OBJ)
+	rm -rf $(NAME).1
 	rm -rf $(PKGNAME) $(PKGNAME).tar.xz
 
 .PHONY: deepclean
