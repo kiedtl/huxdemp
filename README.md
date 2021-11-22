@@ -30,12 +30,56 @@ this tool.
 
 ### Seeing is believing
 
-![huxd reading a snippet from The Silmarillion](img/silm.png)
-![huxd reading some UTF8 text, demonstrating the -u flag](img/utf8.png)
-![huxd reading /dev/input/mouse](img/mouse.png)
-![huxd reading /dev/input/mouse](img/mouse2.png)
-![huxd reading part of a PNG image](img/png.png)
-![huxd reading /dev/random](img/rnd.png)
+*Reading a snippet from the Silmarillion*:
+![screenshot](img/silm.png)
+
+*Reading some UTF8 text, demonstrating the -u flag*:
+![screenshot](img/utf8.png)
+
+*Reading `/dev/input/mouse`*:
+![screenshot](img/mouse.png)
+![screenshot](img/mouse2.png)
+
+*Reading part of a PNG image*:
+![screenshot](img/png.png)
+
+*Reading `/dev/urandom`*:
+![screenshot](img/rnd.png)
+
+### Usage
+
+```
+$ ./huxd -h
+Usage: ./huxd [-hV]
+       ./huxd [-cu] [-n length] [-s offset] [-t table]
+              [-C color?] [-P pager?] [FILE]...
+
+Flags:
+    -c  Use Unicode glyphs to display the lower control
+        chars (0 to 31). E.g. ␀ for NUL, ␖ for SYN (0x16), &c
+    -u  Highlight sets of bytes that 'belong' to the same UTF-8
+        encoded Unicode character.
+    -h  Print this help message and exit.
+    -V  Print huxd's version and exit.
+
+Options:
+    -l  Number of bytes to be displayed on a line. (default: 16)
+    -n  Maximum number of bytes to be read (can be used with -s flag).
+    -s  Number of bytes to skip from the start of the input. (default: 0)
+    -t  What 'table' or style to use.
+        Possible values: `default', `cp437', or `classic'.
+    -C  When to use fancy terminal formatting.
+        Possible values: `auto', `always', `never'.
+    -P  When to run the output through a less(1).
+        Possible values: `auto', `always', `never'.
+
+Arguments are processed in the same way that cat(1) does: any
+arguments are treated as files and read, a lone "-" causes huxd
+to read from standard input, &c.
+
+See the manpage huxd(1) for more documentation.
+$
+```
 
 ### Install
 
@@ -82,6 +126,7 @@ $
 - A flag to display the ASCII column in bold.
 - A $HXD_COLORS variable to change the display style of the ASCII/byte column.
 - Unicode rune pane.
+- Support for OpenBSD and FreeBSD.
 - Use skeeto's branchless utf8 decoder design to make this tool Blazing Fast™.
 - Use `pledge(2)`/`unveil(2)` on OpenBSD.
 - Support Windows 10/11.
