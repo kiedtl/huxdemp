@@ -72,11 +72,9 @@ $
 ### TODO
 
 - A flag to "mark" the nth byte of the input.
-- Automatically pipe output through $PAGER when necessary.
 - An option to change the order/format of the columns.
 - A flag to display the ASCII column in bold.
-- A $HXD_COLORS variable to change the display style of the ASCII/byte
-  column.
+- A $HXD_COLORS variable to change the display style of the ASCII/byte column.
 - Unicode rune pane.
 - Use skeeto's branchless utf8 decoder design to make this tool Blazing Fast™.
 - Use `pledge(2)`/`unveil(2)` on OpenBSD.

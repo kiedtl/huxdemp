@@ -15,6 +15,9 @@ huxd dumps the contents of FILE (or standard input, if FILE is "-") as a
 list of space-separated two-digit hexadecimal values, along with the input
 offset and ASCII representation (if the character is printable).
 
+By default, output is piped through less(1). This behaviour can be suppressed
+if so desired.
+
 ## Example output
 
 $ *huxd -Cnever -tclassic -l8 < file*
@@ -92,6 +95,16 @@ $ *huxd -Cnever -tclassic -l8 < file*
 	- No Unicode line-drawing text is used.
 	- The byte offset column is padded with zeros instead of spaces.
 	- No terminal colors or formatting are used.
+
+*-P*=_WHEN_
+	When to pipe output through the *less*(1) pager, similar to
+	*git-log*(1). _WHEN_ is one of *auto*, *always*, or *never*.
+
+	In auto mode, the pager is not used when:
+	- Standard output is not a terminal.
+	- The output is small enough that it can be seen at once without
+	  scrolling.
+
 
 # CP437
 

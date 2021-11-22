@@ -120,20 +120,29 @@ holding a character.
 typedef unsigned char byte_t;
 ~~~
 
+An enum to use for storing options like -c and -p.
+
+~~~
+enum ActionMode {
+	AM_Always, AM_Auto, AM_Never
+};
+~~~
+
 A single struct that holds all the options for this program.
 `table' is set by the `-t' flag, `cntrls' is set by the `-c' flag, etc.
 
-NOTE: _color is not set directly by the user; its value is determined after
-the user has set the value of the `color' field.
+NOTE: _color is not set directly by the user; its value is
+determined after the user has set the value of the `color'/`pager' field.
 
 ~~~
+#define MAX_LINELEN 128
+
 struct {
 	char **table;
 	_Bool ctrls, utf8;
 
-	enum {
-		C_AUTO, C_ALWAYS, C_NEVER,
-	} color;
+	enum ActionMode color;
+	enum ActionMode pager;
 
 	_Bool _color;
 
@@ -206,7 +215,7 @@ input.
 
 ~~~
 static void
-display(byte_t *buf, size_t sz, size_t offset)
+display(byte_t *buf, size_t sz, size_t offset, FILE *out)
 {
 ~~~
 
@@ -222,7 +231,7 @@ the left.
   ^~
 
 ~~~
-	printf("\x1b[37m%4zx\x1b[m    ", offset);
+	fprintf(out, "\x1b[37m%4zx\x1b[m    ", offset);
 ~~~
 
 Display the byte column.
@@ -251,18 +260,18 @@ Display the byte column.
 		_utf8state((ssize_t)off, buf[i]);
 
 		if (i == (options.linelen / 2))
-			printf(" ");
+			fprintf(out, " ");
 
 		size_t bg = 0, fg = styles[buf[i]].hex;
 		if (options.utf8 && utf8_state[1] > 0)
 			bg = 100, fg = 97;
 
-		printf("\x1b[%zum\x1b[%zum%02hx", bg, fg, buf[i]);
+		fprintf(out, "\x1b[%zum\x1b[%zum%02hx", bg, fg, buf[i]);
 
 		if (utf8_state[0] + utf8_state[1] <= (ssize_t)off)
-			printf("\x1b[m ");
+			fprintf(out, "\x1b[m ");
 		else
-			printf("\x1b[37m\x1b[22m ");
+			fprintf(out, "\x1b[37m\x1b[22m ");
 	}
 ~~~
 
@@ -281,11 +290,11 @@ LINELEN - sz   The number of hex digits that weren't printed on this line.
                printed.
 
 ~~~
-	printf("\x1b[m");
+	fprintf(out, "\x1b[m");
 	if (options.linelen - sz > 0) {
-		printf("%*s", (int)(options.linelen - sz) * 3, "");
+		fprintf(out, "%*s", (int)(options.linelen - sz) * 3, "");
 		if (sz <= (options.linelen / 2))
-			printf(" ");
+			fprintf(out, " ");
 	}
 ~~~
 
@@ -299,11 +308,11 @@ tables.c.
                                                             ^~~~~~~~~~~~~~~~~~
 
 ~~~
-	printf("   │");
+	fprintf(out, "   │");
 	for (size_t off = offset, i = 0; i < sz; ++i, ++off)
-		printf("%s%s\x1b[m", OR(styles[buf[i]].esc1, ""),
+		fprintf(out, "%s%s\x1b[m", OR(styles[buf[i]].esc1, ""),
 			_format_char(buf[i]));
-	printf("│\n");
+	fprintf(out, "│\n");
 }
 ~~~
 
@@ -315,26 +324,61 @@ This is a version of display() which is used when `options._color' is false.
 
 ~~~
 static void
-display_nocolor(byte_t *buf, size_t sz, size_t offset)
+display_nocolor(byte_t *buf, size_t sz, size_t offset, FILE *out)
 {
-	printf("%08zx    ", offset);
+	fprintf(out, "%08zx    ", offset);
 
 	for (size_t i = 0; i < sz; ++i) {
 		if (i == (options.linelen / 2))
-			printf(" ");
-		printf("%02hx ", buf[i]);
+			fprintf(out, " ");
+		fprintf(out, "%02hx ", buf[i]);
 	}
 
 	if (options.linelen - sz > 0) {
-		printf("%*s", (int)(options.linelen - sz) * 3, "");
+		fprintf(out, "%*s", (int)(options.linelen - sz) * 3, "");
 		if (sz <= (options.linelen / 2))
-			printf(" ");
+			fprintf(out, " ");
 	}
 
-	printf("   |");
+	fprintf(out, "   |");
 	for (size_t i = 0; i < sz; ++i)
-		printf("%s", _format_char(buf[i]));
-	printf("|\n");
+		fprintf(out, "%s", _format_char(buf[i]));
+	fprintf(out, "|\n");
+}
+~~~
+
+A utility func to start less, and make our stdout point to less's stdin. This allows
+output to be piped through less automatically (kinda like `git log`).
+
+- The "-F" flag is given to make less quit immediately if the output can be
+  displayed without scrolling.
+- The FILE* value is returned so that it can be passed to pclose() later on.
+
+~~~
+static FILE *
+pager(enum ActionMode mode)
+{
+	char *command = NULL;
+	switch (mode) {
+	break; case AM_Never:  command = NULL;
+	break; case AM_Always: command = "less -R";
+	break; case AM_Auto:
+		if (isatty(STDOUT_FILENO)) {
+			command = "less -F -R";
+		}
+	}
+
+	if (command == NULL) {
+		return stdout;
+	}
+
+	FILE *pager = popen(command, "w");
+	if (pager == NULL) {
+		warn("Couldn't execute pager (use '-P never' to disable)");
+		return stdout;
+	}
+
+	return pager;
 }
 ~~~
 
@@ -344,57 +388,79 @@ We just take a path, open it (if it's not stdin), and call `display()' (or
 
 ~~~
 static void
-huxdemp(char *path)
+huxdemp(char *path, FILE *out)
 {
 	/* Reset UTF8 state for each file. */
 	utf8_state[0] = utf8_state[1] = -1;
 
-	FILE *fp = !strcmp(path, "-")
-		? stdin : fopen(path, "r");
+	FILE *fp = !strcmp(path, "-") ? stdin : fopen(path, "r");
 
 	if (fp == NULL) {
 		warn("\"%s\"", path);
-		return;
+		goto cleanup;
 	}
 
-	void (*func)(byte_t *, size_t, size_t);
+	void (*func)(byte_t *, size_t, size_t, FILE *);
 	func = options._color ? display : display_nocolor;
 
-	byte_t buf[options.linelen];
+	byte_t buf[MAX_LINELEN];
 	size_t offset = 0;
+~~~
 
+Determine the offset to start at. By default it's zero, but if the -s option is
+passed we try to seek forward in the stream to that offset.
+
+NOTE: when we update the `offset` variable, we use the return value from
+ftell(). This is so that if the user-provided value is beyond the boundaries of
+the stream (in which case the file pointer will be at the end of the stream), we
+won't end up using an erroneous value.
+
+TODO: check that the provded offset isn't negative, etc
+
+~~~
 	if (options.offset != 0) {
 		int r = fseek(fp, (long)options.offset, SEEK_SET);
 		if (r == -1) {
 			warn("\"%s\": Couldn't seek to offset %ld",
 				path, options.offset);
-			return;
+			goto cleanup;
 		} else {
-			offset = options.offset;
+			offset = ftell(fp);
 		}
 	}
+~~~
 
+start_offset is used to determine when to stop reading from the file when the -n
+option is passed.
+
+~~~
 	size_t start_offset = offset;
+~~~
 
+Main loop. Erase buffer, read as much bytes as we can (and stop if we can't or
+shouldn't read any more), and close the stream afterwards.
+
+~~~
 	for (size_t r = 0; ;) {
 		memset(buf, 0x0, sizeof(buf));
 
-		size_t max_read = sizeof(buf);
+		size_t max_read = options.linelen;
 		if (options.length > 0) {
 			size_t bytes_left = options.length - (offset - start_offset);
-			max_read = MIN(sizeof(buf), bytes_left);
+			max_read = MIN(options.linelen, bytes_left);
 		}
 
 		if (!(r = fread(buf, 1, max_read, fp)))
 			break;
-		(func)(buf, r, offset);
+		(func)(buf, r, offset, out);
 		offset += r;
 	}
 
-	if (strcmp(path, "-"))
+cleanup:
+	if (fp != NULL && fp != stdin)
 		fclose(fp);
 
-	printf("\n");
+	fprintf(out, "\n");
 }
 ~~~
 
@@ -411,9 +477,9 @@ If `auto':
 static _Bool
 _decide_color(void)
 {
-	if (options.color == C_ALWAYS)
+	if (options.color == AM_Always)
 		return true;
-	if (options.color == C_NEVER)
+	if (options.color == AM_Never)
 		return false;
 
 	if (!isatty(STDOUT_FILENO))
@@ -442,8 +508,8 @@ static _Noreturn void
 _usage(char *argv0)
 {
 	printf("Usage: %s [-hV]\n", argv0);
-	printf("       %s [-cu] [-n length] [-s offset] [-t table] [-C color?] [FILE]...\n",
-		argv0);
+	printf("       %s [-cu] [-n length] [-s offset] [-t table]\n", argv0);
+	printf("       %*s [-C color?] [-P pager?] [FILE]...\n", (int)strlen(argv0), "");
 	printf("\n");
 	printf("Flags:\n");
 	printf("    -c  Use Unicode glyphs to display the lower control\n");
@@ -461,13 +527,15 @@ _usage(char *argv0)
 	printf("        Possible values: `default', `cp437', or `classic'.\n");
 	printf("    -C  When to use fancy terminal formatting.\n");
 	printf("        Possible values: `auto', `always', `never'.\n");
+	printf("    -P  When to run the output through a less(1).\n");
+	printf("        Possible values: `auto', `always', `never'.\n");
 	printf("\n");
 	printf("Arguments are processed in the same way that cat(1) does: any\n");
 	printf("arguments are treated as files and read, a lone \"-\" causes huxd\n");
 	printf("to read from standard input, &c.\n");
 	printf("\n");
 	printf("See the manpage huxd(1) for more documentation.\n");
-	_Exit(0);
+	exit(0);
 }
 ~~~
 
@@ -487,7 +555,7 @@ but we're setting some options to zero anyway here to be explicit.
 ~~~
 	options.table = (char **)&t_default;
 	options.ctrls = options.utf8 = false;
-	options.color = C_AUTO;
+	options.color = options.pager = AM_Auto;
 	options.linelen = 16;
 	options.offset = 0;
 	options.length = 0;
@@ -503,6 +571,11 @@ switch back to getopt.
 	break; case 'l':
 		optarg = EARGF(_usage(argv0));
 		options.linelen = strtol(optarg, NULL, 0);
+		if (options.linelen > MAX_LINELEN) {
+			warnx("%ld are much too many bytes for you, sorry",
+				options.linelen);
+			options.linelen = MAX_LINELEN;
+		}
 	break; case 's':
 		optarg = EARGF(_usage(argv0));
 		options.offset = strtol(optarg, NULL, 0);
@@ -523,14 +596,24 @@ switch back to getopt.
 			options.table = NULL;
 		else
 			_usage(argv0);
+	break; case 'P':
+		optarg = EARGF(_usage(argv0));
+		if (!strncmp(optarg, "au", 2))
+			options.pager = AM_Auto;
+		else if (!strncmp(optarg, "al", 2))
+			options.pager = AM_Always;
+		else if (!strncmp(optarg, "ne", 2))
+			options.pager = AM_Never;
+		else
+			_usage(argv0);
 	break; case 'C':
 		optarg = EARGF(_usage(argv0));
 		if (!strncmp(optarg, "au", 2))
-			options.color = C_AUTO;
+			options.color = AM_Auto;
 		else if (!strncmp(optarg, "al", 2))
-			options.color = C_ALWAYS;
+			options.color = AM_Always;
 		else if (!strncmp(optarg, "ne", 2))
-			options.color = C_NEVER;
+			options.color = AM_Never;
 		else
 			_usage(argv0);
 	break; case 'v': case 'V':
@@ -541,10 +624,17 @@ switch back to getopt.
 	} ARGEND
 ~~~
 
-Now check whether we can use colors, depending on the user's input (if any).
+Now check whether we can use colors, depending on the user's input
+(if any).
 
 ~~~
 	options._color = _decide_color();
+~~~
+
+Setup a pager. pager_fp will be passed to pclose() later on.
+
+~~~
+	FILE *pager_fp = pager(options.pager);
 ~~~
 
 Now process 'free' arguments the same way every sane POSIX application does: if
@@ -553,17 +643,20 @@ the argument as a file.
 
 ~~~
 	if (!argc) {
-		huxdemp("-");
+		huxdemp("-", pager_fp);
 	} else {
 		for (; *argv; --argc, ++argv)
-			huxdemp(*argv);
+			huxdemp(*argv, pager_fp);
 	}
 ~~~
 
-I can't think of anything to say here. I'm beginning to wonder whether this
-literate programming experiment was such a great idea.
+Close pager_fp, waiting for the pager to exit.
 
 ~~~
+	if (pager_fp != stdout) {
+		pclose(pager_fp);
+	}
+
 	return 0;
 }
 ~~~
