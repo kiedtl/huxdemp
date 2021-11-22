@@ -121,13 +121,15 @@ $
 
 ### TODO
 
-- A flag to "mark" the nth byte of the input.
 - An option to change the order/format of the columns.
   - Allow splitting the ASCII column into half. E.g., first-byte, first-ascii,
     second-byte, second-ascii
-- A flag to display the ASCII column in bold.
 - A $HXD_COLORS variable to change the display style of the ASCII/byte column.
 - Unicode rune pane.
+- A flag to "mark" the nth byte of the input, with both an absolute and relative
+  position. (Is this really needed?)
+  - relative: "huxd -m 0x34,12,0o45 < foo"
+  - absolute: "huxd -M 0x34,12,0o45 < foo"
 - Support for OpenBSD and FreeBSD.
 - Use skeeto's branchless utf8 decoder design to make this tool Blazing Fast™.
 - Use `pledge(2)`/`unveil(2)` on OpenBSD.

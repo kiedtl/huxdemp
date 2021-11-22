@@ -61,7 +61,8 @@ First, the includes.
 * string.h: Used for `strcmp'/`strncmp', the sole string function used in this
   program.
 * stdlib.h: used for `getenv'.
-* unistd.h: used for `isatty' and the `STDOUT_FILENO' constant.
+* unistd.h: used for `popen`/`pclose`, `isatty' and the `STDOUT_FILENO'
+  constant.
 
 `size_t' used instead of `int' because it's faster to use an unsigned integer,
 and it's almost always faster to use an integer with a bit size equivalent to
@@ -110,7 +111,6 @@ Some utility macros.
 ~~~
 #define MAX(V, H) ((V) > (H) ? (V) : (H))
 #define MIN(V, H) ((V) < (H) ? (V) : (H))
-#define OR(A, B)  ((A) ? (A) : (B))
 ~~~
 
 People these days should stop pretending that C's `char' is really capable of
@@ -120,7 +120,7 @@ holding a character.
 typedef unsigned char byte_t;
 ~~~
 
-An enum to use for storing options like -c and -p.
+An enum to use for storing options like -C and -P.
 
 ~~~
 enum ActionMode {
@@ -262,7 +262,7 @@ Display the byte column.
 		if (i == (options.linelen / 2))
 			fprintf(out, " ");
 
-		size_t bg = 0, fg = styles[buf[i]].hex;
+		size_t bg = 0, fg = styles[buf[i]];
 		if (options.utf8 && utf8_state[1] > 0)
 			bg = 100, fg = 97;
 
@@ -309,9 +309,12 @@ tables.c.
 
 ~~~
 	fprintf(out, "   │");
-	for (size_t off = offset, i = 0; i < sz; ++i, ++off)
-		fprintf(out, "%s%s\x1b[m", OR(styles[buf[i]].esc1, ""),
-			_format_char(buf[i]));
+	for (size_t off = offset, i = 0; i < sz; ++i, ++off) {
+		if (styles[buf[i]] != 0) {
+			fprintf(out, "\x1b[%ldm", styles[buf[i]]);
+		}
+		fprintf(out, "%s\x1b[m", _format_char(buf[i]));
+	}
 	fprintf(out, "│\n");
 }
 ~~~

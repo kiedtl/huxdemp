@@ -1,11 +1,8 @@
-struct Style {
-	char *esc1;
-	size_t hex;
-} styles[256] = {
-#define _H { "\x1b[33m", 33 } /* ctrl chars */
-#define _L { "\x1b[34m", 34 } /* ctrl chars */
-#define _W { "\x1b[90m", 90 } /* whitespace */
-#define _B { "\x1b[31m", 31 } /* blackspace */
+size_t styles[256] = {
+#define _H 33   /* ctrl chars */
+#define _L 34   /* ctrl chars */
+#define _W 90   /* whitespace */
+#define _B 31   /* blackspace */
 	[0]   = _W,
 	[1]   = _L, [2]   = _L, [3]   = _L, [4]   = _L, [5]   = _L,
 	[6]   = _L, [7]   = _L, [8]   = _B, [9]   = _W, [10]  = _W,
