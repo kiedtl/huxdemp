@@ -23,8 +23,9 @@ this tool.
 
 ### Anti-features
 
+- No FreeBSD/OpenBSD support. (This will be worked on soon. Patches welcome!)
+- No octal dumping. (This *might* be added later.)
 - No Windows support.
-- No octal dumping (this *might* be added later).
 - Not written in Rust. (The horrors!)
 
 ### Seeing is believing
@@ -68,7 +69,7 @@ $ make
     CCLD    unu
     UNU     main.c
     CCLD    huxd
-    SCDOC  
+    SCDOC   huxd.1
 $ sudo make install
 [sudo] password for kiedtl:
 $
