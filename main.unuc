@@ -161,7 +161,7 @@ A table to hold the colors used for all byte values. This will be set later in
 main() with config().
 
 ~~~
-size_t styles[256] = {0};
+uint8_t styles[256] = {0};
 ~~~
 
 Keep track of what UTF8 codepoint we're printing. This allows us to highlight
@@ -322,7 +322,7 @@ tables.c.
 ~~~
 	fprintf(out, "   │");
 	for (size_t off = offset, i = 0; i < sz; ++i, ++off) {
-		fprintf(out, "\x1b[38;5;%ldm", styles[buf[i]]);
+		fprintf(out, "\x1b[38;5;%hdm", styles[buf[i]]);
 		fprintf(out, "%s\x1b[m", _format_char(buf[i]));
 	}
 	fprintf(out, "│\n");
@@ -597,13 +597,18 @@ OK).
 		if (!strncmp(rhand, "0x", 2)) base = 16, rhand += 2;
 		if (!strncmp(rhand, "0b", 2)) base = 2,  rhand += 2;
 		size_t rhand_num = strtol(rhand, NULL, base);
+
+		if (rhand_num > 255) {
+			warnx("Couldn't parse config: '%ld' is out of range (only 255 colors!)", rhand_num);
+			return;
+		}
 ~~~
 
 Finally, apply the config statement.
 
 ~~~
 		for (size_t i = 0; i < (size_t)range_len; ++i) {
-			styles[range_out[i]] = rhand_num;
+			styles[range_out[i]] = (uint8_t)rhand_num;
 		}
 	}
 }
