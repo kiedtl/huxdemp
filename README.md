@@ -24,7 +24,7 @@ this tool.
 
 ### Anti-features
 
-- No FreeBSD/OpenBSD support. (This will be worked on soon. Patches welcome!)
+- No OpenBSD support. (This will be worked on soon. Patches welcome!)
 - No octal dumping. (This *might* be added later.)
 - No Windows support.
 - Not written in Rust. (The horrors!)
@@ -130,7 +130,7 @@ $
   position. (Is this really needed?)
   - relative: "huxd -m 0x34,12,0o45 < foo"
   - absolute: "huxd -M 0x34,12,0o45 < foo"
-- Support for OpenBSD and FreeBSD.
+- Support for OpenBSD.
 - Use skeeto's branchless utf8 decoder design to make this tool Blazing Fast™.
 - Use `pledge(2)`/`unveil(2)` on OpenBSD.
 - Support Windows 10/11.
