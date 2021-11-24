@@ -12,7 +12,7 @@ SRC3     =
 OBJ      = $(SRC:.c=.o)
 OBJ3     = $(SRC3:.c=.o)
 
-WARNING  = -Wall -Wpedantic -Wextra -Wold-style-definition -Wmissing-prototypes \
+WARNING  = -Wall -Wextra -Wold-style-definition -Wmissing-prototypes \
 	   -Winit-self -Wfloat-equal -Wstrict-prototypes -Wredundant-decls \
 	   -Wendif-labels -Wstrict-aliasing=2 -Woverflow -Wformat=2 -Wtrigraphs \
 	   -Wmissing-include-dirs -Wno-format-nonliteral -Wunused-parameter \

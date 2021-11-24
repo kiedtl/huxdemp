@@ -14,6 +14,7 @@ this tool.
 ### Features/Anti-features
 
 - "Highlights" bytes that "belong" to the same UTF8-encoded character.
+- `$HUXD_COLORS` can be set to customize color choices.
 - Ability to print characters in IBM's code page 437 (see screenshots).
 - Ability to print control characters using fancy Unicode glyphs (e.g. ␀
   for NUL, ␌ for FF (form feed), etc).
@@ -124,7 +125,6 @@ $
 - An option to change the order/format of the columns.
   - Allow splitting the ASCII column into half. E.g., first-byte, first-ascii,
     second-byte, second-ascii
-- A $HXD_COLORS variable to change the display style of the ASCII/byte column.
 - Unicode rune pane.
 - A flag to "mark" the nth byte of the input, with both an absolute and relative
   position. (Is this really needed?)

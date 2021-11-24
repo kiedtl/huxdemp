@@ -91,6 +91,9 @@ Now to include other source files.
 * tables.c: Various 'tables' of strings that are used to display characters.
   E.g. "·" for 0x12, "A" for 0x41, etc.
 
+* range.c: Utility funcs for parsing ranges (e.g., "0-3", "1,2,3-4,5", etc).
+  Used for parsing $HUXD_COLORS.
+
 * utf8.c: An extremely simple UTF8 library proudly stolen from the termbox[1]
   source code.
 
@@ -104,6 +107,7 @@ Makefile.
 #include "arg.h"
 #include "tables.c"
 #include "utf8.c"
+#include "range.c"
 ~~~
 
 Some utility macros.
@@ -120,7 +124,8 @@ holding a character.
 typedef unsigned char byte_t;
 ~~~
 
-An enum to use for storing options like -C and -P.
+An enum for storing the values of options like -C and -P (i.e., when to use
+colors and pagers).
 
 ~~~
 enum ActionMode {
@@ -150,6 +155,13 @@ struct {
 	uint64_t offset;
 	uint64_t length;
 } options;
+~~~
+
+A table to hold the colors used for all byte values. This will be set later in
+main() with config().
+
+~~~
+size_t styles[256] = {0};
 ~~~
 
 Keep track of what UTF8 codepoint we're printing. This allows us to highlight
@@ -266,7 +278,7 @@ Display the byte column.
 		if (options.utf8 && utf8_state[1] > 0)
 			bg = 100, fg = 97;
 
-		fprintf(out, "\x1b[%zum\x1b[%zum%02hx", bg, fg, buf[i]);
+		fprintf(out, "\x1b[%zum\x1b[38;5;%zum%02hx", bg, fg, buf[i]);
 
 		if (utf8_state[0] + utf8_state[1] <= (ssize_t)off)
 			fprintf(out, "\x1b[m ");
@@ -310,9 +322,7 @@ tables.c.
 ~~~
 	fprintf(out, "   │");
 	for (size_t off = offset, i = 0; i < sz; ++i, ++off) {
-		if (styles[buf[i]] != 0) {
-			fprintf(out, "\x1b[%ldm", styles[buf[i]]);
-		}
+		fprintf(out, "\x1b[38;5;%ldm", styles[buf[i]]);
 		fprintf(out, "%s\x1b[m", _format_char(buf[i]));
 	}
 	fprintf(out, "│\n");
@@ -501,6 +511,104 @@ _decide_color(void)
 }
 ~~~
 
+Parse a config string and apply to the `styles` table in tables.c.
+
+~~~
+static void
+config(const char *config_str)
+{
+~~~
+
+Copy the (constant) argument to our own buffer, since we're going to modify it
+with strsep when splitting it.
+
+~~~
+	char *conf_buf = malloc(strlen(config_str) + 1);
+	if (conf_buf == NULL) {
+		warn("Please hit Alt+F4 a few times");
+		return;
+	}
+	strcpy(conf_buf, config_str);
+~~~
+
+Now the actual parsing.
+
+First, split each statement along the ";"
+
+~~~
+	for (char *ptr = conf_buf; ptr;) {
+		char *statement = strsep(&ptr, ";");
+		if (*statement == '\0') continue;
+~~~
+
+Now, split along the "=".
+
+~~~
+		char *eql = strchr(statement, '=');
+		if (eql == NULL) {
+			warnx("Couldn't parse config: '%s' is malformed", statement);
+			return;
+		}
+		*eql = '\0';
+		char *lhand = statement;
+		char *rhand = eql + 1;
+~~~
+
+Pre-defined strings are expanded to pre-defined ranges to make configuring this
+lame program slightly less painful.
+
+~~~
+		char *range = lhand;
+		if (!strcmp(lhand, "printable"))   range = "0x20-0x7E";
+		if (!strcmp(lhand, "unprintable")) range = "0x0-0x1F,0x7F";
+		if (!strcmp(lhand, "whitespace"))  range = "0x8-0xD,0x20";
+		if (!strcmp(lhand, "blackspace"))  range = "0x08,0x7F";
+		if (!strcmp(lhand, "nul"))         range = "0x0";
+		if (!strcmp(lhand, "del"))         range = "0x7F";
+~~~
+
+Now, expand the range into `range_out`. expand_range() returns the number of
+items in the range, or -1 if the range was invalid.
+
+Examples:
+	- "0-1" ⇒ {0,1}
+	- "whitespace" ⇒ {8,9,10,11,12,13,32}
+	- "nul" ⇒ {0}
+
+~~~
+		byte_t range_out[256];
+		ssize_t range_len = expand_range(range, range_out);
+		if (range_len == -1) {
+			warnx("Couldn't parse config: %s is not a valid range", range);
+			return;
+		}
+~~~
+
+Parse the right-hand side of the config statement. We do our own base detection
+because we don't want "0300" to be parsed as an octal (the only true way to do
+it is "0o300").
+
+FIXME: we don't reject invalid numbers here (but trailing whitespace should be
+OK).
+
+~~~
+		size_t base = 10;
+		if (!strncmp(rhand, "0o", 2)) base = 8,  rhand += 2;
+		if (!strncmp(rhand, "0x", 2)) base = 16, rhand += 2;
+		if (!strncmp(rhand, "0b", 2)) base = 2,  rhand += 2;
+		size_t rhand_num = strtol(rhand, NULL, base);
+~~~
+
+Finally, apply the config statement.
+
+~~~
+		for (size_t i = 0; i < (size_t)range_len; ++i) {
+			styles[range_out[i]] = rhand_num;
+		}
+	}
+}
+~~~
+
 Print a usage string and exit.
 
 TODO: Change the _Noreturn attribute to a macro that checks if the compiler
@@ -562,6 +670,14 @@ but we're setting some options to zero anyway here to be explicit.
 	options.linelen = 16;
 	options.offset = 0;
 	options.length = 0;
+~~~
+
+A color config that's evaluated by config() (before $HUXD_COLORS) to set the
+default colors.
+
+~~~
+	char *default_colors =
+		"printable=15;blackspace=1;nul=8;whitespace=8;128-255=3;1-8=6;11-31=6";
 ~~~
 
 Parse arguments with `arg.h'. Yes, the macros are ugly. No, I am not going to
@@ -628,10 +744,15 @@ switch back to getopt.
 ~~~
 
 Now check whether we can use colors, depending on the user's input
-(if any).
+(if any). If so, set default colors and parse environment variables.
 
 ~~~
 	options._color = _decide_color();
+
+	if (options._color) {
+		config(default_colors);
+		config(getenv("HUXD_COLORS") ?: "");
+	}
 ~~~
 
 Setup a pager. pager_fp will be passed to pclose() later on.

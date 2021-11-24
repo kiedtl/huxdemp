@@ -15,8 +15,10 @@ huxd dumps the contents of FILE (or standard input, if FILE is "-") as a
 list of space-separated two-digit hexadecimal values, along with the input
 offset and ASCII representation (if the character is printable).
 
-By default, output is piped through less(1). This behaviour can be suppressed
-if so desired.
+By default, output is piped through *less*(1). This behaviour can be suppressed
+if so desired (see *-P*).
+
+Colors used by huxd can be configured environment variables (see *ENVIRONMENT*).
 
 ## Example output
 
@@ -105,6 +107,70 @@ $ *huxd -Cnever -tclassic -l8 < file*
 	- The output is small enough that it can be seen at once without
 	  scrolling.
 
+# ENVIRONMENT
+
+*HUXD_COLORS*
+	This environment variable may be set to change the default colors used.
+	Its content takes the following syntax:
+
+		```
+		<range>=<value>[;<range>=<value>]...
+		```
+	
+	...where _<range>_ is a numerical range of the following forms:
+
+		```
+		<start>-<finish>
+		<item>,<item>,<item>
+		```
+
+	...and <value> is color from 0 to 255. You can use the following bash
+	script to view possible colors:
+
+		```
+		e="$(printf "\033")"; t="Lorem \033[1mipsum."
+		i=0; while [ $i -le 255 ]; do
+			printf "${i}$e[4D$e[4C"
+			printf "$e[38;5;${i}m $t $e[0m "
+			printf "$e[48;5;${i}m$e[30m $t $e[0m "
+			printf "$e[48;5;${i}m $t $e[0m "
+			printf "$e[48;5;${i}m$e[K$e[m\n"
+			i=$(( i + 1 ))
+		done
+		```
+
+	<range> can also be one of the following predefined strings:
+
+[[ *String*
+:- *Expanded value*
+|  printable
+:] 0x20-0x7e
+|  unprintable
+:] 0x0-0x1f,0x7f
+|  whitespace
+:] 0x8-0xd,0x20
+|  blackspace
+:] 0x08,0x7F
+|  nul
+:] 0x0
+|  del
+:] 0x7f
+
+
+	*Examples*:
+
+	- HUXD_COLORS="*7f=124*"
+
+	Sets the color of DEL (0x7F) to bright red.
+
+	- HUXD_COLORS="*nul=21;printable=8*"
+
+	Sets the color of NUL (0x0) to bright blue, and the color of all
+	printable characters to light grey.
+
+	- HUXD_COLORS="*128-255=11*"
+
+	Sets the colors of all control characters above 0x7F to yellow.
 
 # CP437
 
@@ -173,9 +239,7 @@ The following features are currently missing, and will be implemented in
 future releases:
 
 - A option to change the order of the columns.
-- A $HXD_COLORS variable to change the display style of the ASCII and byte column.
 - A flag to display the ASCII column in bold.
-- A flag to "mark" the nth byte of the input.
 
 # AUTHORS
 
