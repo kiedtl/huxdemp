@@ -2,7 +2,7 @@ huxd(1) "General Something Something Manual"
 
 # NAME
 
-*huxd -* hexadecimal dump, an alternative to hexdump/hd
+*huxd -* hexadecimal dump, an alternative to hexdump/hd. Short for *huxdemp*.
 
 # SYNOPSIS
 
@@ -117,7 +117,8 @@ $ *huxd -Cnever -tclassic -l8 < file*
 		<range>=<value>[;<range>=<value>]...
 		```
 	
-	...where _<range>_ is a numerical range of the following forms:
+	...where _<range>_, indicating which bytes should be colored with
+	<value>, is a numerical range of the following forms:
 
 		```
 		<start>-<finish>
