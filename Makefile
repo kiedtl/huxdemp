@@ -1,6 +1,6 @@
 CMD      = @
 
-VERSION  = 0.1.0
+VERSION  = 0.2.1
 NAME     = huxd
 PKGNAME  = $(NAME)-$(shell uname -s)-$(shell uname -m)-$(VERSION)
 
