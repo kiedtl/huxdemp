@@ -6,12 +6,12 @@
 _Bool inblock = false;
 
 static void
-unu(char *fname, uint64_t lineno, char *line)
+unu(char *fname, size_t lineno, char *line)
 {
 	if (!strcmp(line, "~~~")) {
 		inblock = !inblock;
 		if (inblock) {
-			printf("#line %ld \"%s\"\n", lineno, fname);
+			printf("#line %zu \"%s\"\n", lineno, fname);
 			printf("\n");
 		}
 		return;
@@ -24,7 +24,7 @@ int
 main(int argc, char **argv)
 {
 	char *fname = NULL;
-	uint64_t lineno = 0;
+	size_t lineno = 0;
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s [filename] < input > output\n", argv[0]);
