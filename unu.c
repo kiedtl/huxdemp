@@ -6,7 +6,7 @@
 _Bool inblock = false;
 
 static void
-unu(char *fname, size_t lineno, char *line)
+unu(char *fname, uint64_t lineno, char *line)
 {
 	if (!strcmp(line, "~~~")) {
 		inblock = !inblock;
@@ -24,7 +24,7 @@ int
 main(int argc, char **argv)
 {
 	char *fname = NULL;
-	size_t lineno = 0;
+	uint64_t lineno = 0;
 
 	if (argc != 2) {
 		fprintf(stderr, "usage: %s [filename] < input > output\n", argv[0]);
