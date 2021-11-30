@@ -227,7 +227,7 @@ input.
 
 ~~~
 static void
-display(byte_t *buf, size_t sz, size_t offset, FILE *out)
+display(byte_t *buf, size_t sz, size_t offset, _Bool color, FILE *out)
 {
 ~~~
 
@@ -243,7 +243,11 @@ the left.
   ^~
 
 ~~~
-	fprintf(out, "\x1b[37m%4zx\x1b[m    ", offset);
+	if (color) {
+		fprintf(out, "\x1b[37m%4zx\x1b[m    ", offset);
+	} else {
+		fprintf(out, "%08zx    ", offset);
+	}
 ~~~
 
 Display the byte column.
@@ -269,21 +273,25 @@ Display the byte column.
 
 ~~~
 	for (size_t off = offset, i = 0; i < sz; ++i, ++off) {
-		_utf8state((ssize_t)off, buf[i]);
-
 		if (i == (options.linelen / 2))
 			fprintf(out, " ");
 
-		size_t bg = 0, fg = styles[buf[i]];
-		if (options.utf8 && utf8_state[1] > 0)
-			bg = 100, fg = 97;
+		if (color) {
+			_utf8state((ssize_t)off, buf[i]);
 
-		fprintf(out, "\x1b[%zum\x1b[38;5;%zum%02hx", bg, fg, buf[i]);
+			size_t bg = 0, fg = styles[buf[i]];
+			if (options.utf8 && utf8_state[1] > 0)
+				bg = 100, fg = 97;
 
-		if (utf8_state[0] + utf8_state[1] <= (ssize_t)off)
-			fprintf(out, "\x1b[m ");
-		else
-			fprintf(out, "\x1b[37m\x1b[22m ");
+			fprintf(out, "\x1b[%zum\x1b[38;5;%zum%02hx", bg, fg, buf[i]);
+
+			if (utf8_state[0] + utf8_state[1] <= (ssize_t)off)
+				fprintf(out, "\x1b[m ");
+			else
+				fprintf(out, "\x1b[37m\x1b[22m ");
+		} else {
+			fprintf(out, "%02hx ", buf[i]);
+		}
 	}
 ~~~
 
@@ -302,7 +310,10 @@ LINELEN - sz   The number of hex digits that weren't printed on this line.
                printed.
 
 ~~~
-	fprintf(out, "\x1b[m");
+	if (color) {
+		fprintf(out, "\x1b[m");
+	}
+
 	if (options.linelen - sz > 0) {
 		fprintf(out, "%*s", (int)(options.linelen - sz) * 3, "");
 		if (sz <= (options.linelen / 2))
@@ -320,43 +331,16 @@ tables.c.
                                                             ^~~~~~~~~~~~~~~~~~
 
 ~~~
-	fprintf(out, "   │");
+	fprintf(out, "   %s", color ? "│" : "|");
 	for (size_t off = offset, i = 0; i < sz; ++i, ++off) {
-		fprintf(out, "\x1b[38;5;%hdm", styles[buf[i]]);
-		fprintf(out, "%s\x1b[m", _format_char(buf[i]));
+		if (color) {
+			fprintf(out, "\x1b[38;5;%hdm%s\x1b[m",
+				styles[buf[i]], _format_char(buf[i]));
+		} else {
+			fprintf(out, "%s", _format_char(buf[i]));
+		}
 	}
-	fprintf(out, "│\n");
-}
-~~~
-
-This is a version of display() which is used when `options._color' is false.
-
-* No fancy Unicode line-drawing characters are printed.
-* We pad the offset with eight zeros, instead of four spaces.
-* No escape codes are printed.
-
-~~~
-static void
-display_nocolor(byte_t *buf, size_t sz, size_t offset, FILE *out)
-{
-	fprintf(out, "%08zx    ", offset);
-
-	for (size_t i = 0; i < sz; ++i) {
-		if (i == (options.linelen / 2))
-			fprintf(out, " ");
-		fprintf(out, "%02hx ", buf[i]);
-	}
-
-	if (options.linelen - sz > 0) {
-		fprintf(out, "%*s", (int)(options.linelen - sz) * 3, "");
-		if (sz <= (options.linelen / 2))
-			fprintf(out, " ");
-	}
-
-	fprintf(out, "   |");
-	for (size_t i = 0; i < sz; ++i)
-		fprintf(out, "%s", _format_char(buf[i]));
-	fprintf(out, "|\n");
+	fprintf(out, "%s\n", color ? "│" : "|");
 }
 ~~~
 
@@ -396,8 +380,8 @@ pager(enum ActionMode mode)
 ~~~
 
 The "main main" function that's called from main() after arguments are parsed.
-We just take a path, open it (if it's not stdin), and call `display()' (or
-`display_nocolor()', if colors are disabled) after reading LINELEN bytes.
+We just take a path, open it (if it's not stdin), and call `display()' after
+reading LINELEN bytes.
 
 ~~~
 static void
@@ -412,9 +396,6 @@ huxdemp(char *path, FILE *out)
 		warn("\"%s\"", path);
 		goto cleanup;
 	}
-
-	void (*func)(byte_t *, size_t, size_t, FILE *);
-	func = options._color ? display : display_nocolor;
 
 	byte_t buf[MAX_LINELEN];
 	size_t offset = 0;
@@ -465,7 +446,7 @@ shouldn't read any more), and close the stream afterwards.
 
 		if (!(r = fread(buf, 1, max_read, fp)))
 			break;
-		(func)(buf, r, offset, out);
+		display(buf, r, offset, options._color, out);
 		offset += r;
 	}
 
