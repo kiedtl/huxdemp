@@ -40,6 +40,8 @@ $ *huxd -Cnever -tclassic -l8 < file*
 00000068    7f 0a 0a                    |...|
 ```
 
+See *EXAMPLES* for more.
+
 # OPTIONS
 
 *-h*
@@ -71,7 +73,13 @@ $ *huxd -Cnever -tclassic -l8 < file*
 	Available columns:
 	- *offset*
 	- *bytes*
+	- *bytes-left*
+	- *bytes-right*
 	- *ascii*
+	- *ascii-left*
+	- *ascii-right*
+
+	See *EXAMPLES* for an example of this.
 
 *-n*=_LENGTH_
 	Only read _LENGTH_ bytes from the input, starting from the beginning
@@ -213,14 +221,14 @@ becomes easier to distinguish patterns in binary data.
 
 # EXAMPLES
 
-*huxd -tcp437 file*
+$ *huxd -tcp437 file*
 ```
   00    b6 c5 33 ca f3 2b 31 15  36 f8 81 1e bc cb 78 72    │╢┼3╩≤+1§6°ü▲╝╦xr│
   10    ce 71 4d d4 17 2b 39 03  a3 a8 cb f5 2d 99 38 fd    │╬qM╘↨+9♥ú¿╦⌡-Ö8²│
   20    de 5a 1d                                            │▐Z↔|
 ```
 
-*huxd -l4 -tclassic file*
+$ *huxd -Cnever -l4 -tclassic file*
 ```
   00    b6 c5  33 ca    |..3.|
   04    f3 2b  31 15    |.+1.|
@@ -233,7 +241,7 @@ becomes easier to distinguish patterns in binary data.
   20    de 5a  1d       |.Z.|
 ```
 
-*huxd -l8 file*
+$ *huxd -Cnever -l8 file*
 ```
   00    b6 c5 33 ca  f3 2b 31 15    |··3··+1·|
   08    36 f8 81 1e  bc cb 78 72    |6·····xr|
@@ -242,14 +250,41 @@ becomes easier to distinguish patterns in binary data.
   20    de 5a 1d                    |·Z·|
 ```
 
+$ *huxd -l8 -foffset,ascii,bytes file*
+```
+   0    │He ·h××s│    48 65 20 02  68 c3 a1 73
+   8    │ten××d t│    74 65 6e c3  ab 64 20 74
+  10    │hen to A│    68 65 6e 20  74 6f 20 41
+  18    │lqua0lon│    6c 71 75 61  00 6c 6f 6e
+  20    │de, ××× │    64 65 2c 20  e3 be 9b 20
+  28    │and sp××│    61 6e 64 20  73 70 c3 b8
+  30    │ke _·to │    6b 65 20 0a  03 74 6f 20
+  38    │the Tele│    74 68 65 20  54 65 6c 65
+  40    │ri as h×│    72 69 20 61  73 20 68 c3
+  48    │× had sp│    ab 20 68 61  64 20 73 70
+  50    │oken bef│    6f 6b 65 6e  20 62 65 66
+  58    │ore in T│    6f 72 65 20  69 6e 20 54
+  60    │××rion. │    c3 af 72 69  6f 6e 2e 20
+  68    │·__     │    7f 0a 0a
+```
 
-# CAVEATS
-
-The following features are currently missing, and will be implemented in
-future releases:
-
-- A option to change the order of the columns.
-- A flag to display the ASCII column in bold.
+$ *huxd -l8 -foffset,bytes-left,ascii-left,bytes-right,ascii-right file*
+```
+   0    48 65 20 02     │He ·│    68 c3 a1 73     │h××s│
+   8    74 65 6e c3     │ten×│    ab 64 20 74     │×d t│
+  10    68 65 6e 20     │hen │    74 6f 20 41     │to A│
+  18    6c 71 75 61     │lqua│    00 6c 6f 6e     │0lon│
+  20    64 65 2c 20     │de, │    e3 be 9b 20     │××× │
+  28    61 6e 64 20     │and │    73 70 c3 b8     │sp××│
+  30    6b 65 20 0a     │ke _│    03 74 6f 20     │·to │
+  38    74 68 65 20     │the │    54 65 6c 65     │Tele│
+  40    72 69 20 61     │ri a│    73 20 68 c3     │s h×│
+  48    ab 20 68 61     │× ha│    64 20 73 70     │d sp│
+  50    6f 6b 65 6e     │oken│    20 62 65 66     │ bef│
+  58    6f 72 65 20     │ore │    69 6e 20 54     │in T│
+  60    c3 af 72 69     │××ri│    6f 6e 2e 20     │on. │
+  68    7f 0a 0a        │·__ │
+```
 
 # AUTHORS
 
@@ -260,7 +295,10 @@ Created with ♥ on the tilde.team pubnix.
 # REPORTING BUGS
 
 Send bugs reports, hate mail, and other huxd-related bikeshedding to the
-author's email above, or */msg cot* on libera.chat.
+author's email above, or */msg cot* on libera.chat. You can also file an issue
+on GitHub[1], if that's your thing.
+
+. _https://github.com/kiedtl/huxdemp_
 
 # SEE ALSO
 

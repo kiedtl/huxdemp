@@ -287,7 +287,44 @@ Display the byte column.
   60    c3 af 72 69 6f 6e 2e 20  7f 0a 0a                   │··rion. «__│
         ^~~~~~~~~~~~~~~~~~~~~~~  ^~~~~~~~~~~~~~~~~~~~~~~
 
+* Reset the terminal colors.
+
+* Print some padding:
+
+  40    72 69 20 61 73 20 68 c3  ab 20 68 61 64 20 73 70    │ri as h·· had sp│
+  50    6f 6b 65 6e 20 62 65 66  6f 72 65 20 69 6e 20 54    │oken before in T│
+  60    c3 af 72 69 6f 6e 2e 20  7f 0a 0a                   │··rion. «__│
+                                          ^~~~~~~~~~~~~~
+
+  The amount of padding is calculated like so:
+
+  LINELEN - sz   The number of hex digits that weren't printed on this line.
+          *  3   Each hex digit takes up three columns.
+          +  1   Only if the space that divides the two hex digit columns wasn't
+                 printed.
+
 ~~~
+static void
+_display_byte(byte_t byte, size_t off, _Bool use_color, FILE *out)
+{
+	if (use_color) {
+		_utf8state((ssize_t)off, byte);
+
+		size_t bg = 0, fg = styles[byte];
+		if (options.utf8 && utf8_state[1] > 0)
+			bg = 100, fg = 97;
+
+		fprintf(out, "\x1b[%zum\x1b[38;5;%zum%02hx", bg, fg, byte);
+
+		if (utf8_state[0] + utf8_state[1] <= (ssize_t)off)
+			fprintf(out, "\x1b[m ");
+		else
+			fprintf(out, "\x1b[37m\x1b[22m ");
+	} else {
+		fprintf(out, "%02hx ", byte);
+	}
+}
+
 static void
 display_bytes(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *out)
 {
@@ -295,49 +332,47 @@ display_bytes(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *
 		if (i == (options.linelen / 2))
 			fprintf(out, " ");
 
-		if (use_color) {
-			_utf8state((ssize_t)off, buf[i]);
-
-			size_t bg = 0, fg = styles[buf[i]];
-			if (options.utf8 && utf8_state[1] > 0)
-				bg = 100, fg = 97;
-
-			fprintf(out, "\x1b[%zum\x1b[38;5;%zum%02hx", bg, fg, buf[i]);
-
-			if (utf8_state[0] + utf8_state[1] <= (ssize_t)off)
-				fprintf(out, "\x1b[m ");
-			else
-				fprintf(out, "\x1b[37m\x1b[22m ");
-		} else {
-			fprintf(out, "%02hx ", buf[i]);
-		}
+		_display_byte(buf[i], off, use_color, out);
 	}
-~~~
 
-Reset the colors/formatting and print some padding:
-
-  40    72 69 20 61 73 20 68 c3  ab 20 68 61 64 20 73 70    │ri as h·· had sp│
-  50    6f 6b 65 6e 20 62 65 66  6f 72 65 20 69 6e 20 54    │oken before in T│
-  60    c3 af 72 69 6f 6e 2e 20  7f 0a 0a                   │··rion. «__│
-                                          ^~~~~~~~~~~~~~
-
-The amount of padding is calculated like so:
-
-LINELEN - sz   The number of hex digits that weren't printed on this line.
-        *  3   Each hex digit takes up three columns.
-        +  1   Only if the space that divides the two hex digit columns wasn't
-               printed.
-
-~~~
 	if (use_color) {
 		fprintf(out, "\x1b[m");
 	}
 
-	if (options.linelen - buf_sz > 0) {
-		fprintf(out, "%*s", (int)(options.linelen - buf_sz) * 3, "");
-		if (buf_sz <= (options.linelen / 2))
-			fprintf(out, " ");
+	fprintf(out, "%*s", (int)(options.linelen - buf_sz) * 3, "");
+	if (buf_sz <= (options.linelen / 2))
+		fprintf(out, " ");
+}
+
+static void
+display_bytes_left(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *out)
+{
+	for (
+		size_t off = offset, i = 0;
+		i < buf_sz && i < (options.linelen / 2);
+		++i, ++off
+	) _display_byte(buf[i], off, use_color, out);
+
+	if (use_color) {
+		fprintf(out, "\x1b[m");
 	}
+
+	if ((options.linelen / 2) > buf_sz) {
+		fprintf(out, "%*s", (int)((options.linelen / 2) - buf_sz) * 3, "");
+	}
+}
+
+static void
+display_bytes_right(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *out)
+{
+	for (size_t off = offset, i = options.linelen / 2; i < buf_sz; ++i, ++off)
+		_display_byte(buf[i], off, use_color, out);
+
+	if (use_color) {
+		fprintf(out, "\x1b[m");
+	}
+
+	fprintf(out, "%*s", (int)(options.linelen - buf_sz) * 3, "");
 }
 ~~~
 
@@ -352,10 +387,10 @@ tables.c. Finally, add space padding.
 
 ~~~
 static void
-display_ascii(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *out)
+_display_ascii(byte_t *buf, size_t buf_sz, size_t linelen, _Bool use_color, FILE *out)
 {
 	fprintf(out, "%s", use_color ? "│" : "|");
-	for (size_t off = offset, i = 0; i < buf_sz; ++i, ++off) {
+	for (size_t i = 0; i < buf_sz; ++i) {
 		if (use_color) {
 			fprintf(out, "\x1b[38;5;%hdm%s\x1b[m",
 				styles[buf[i]], _format_char(buf[i]));
@@ -363,8 +398,34 @@ display_ascii(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *
 			fprintf(out, "%s", _format_char(buf[i]));
 		}
 	}
+	fprintf(out, "%*s", (int)(linelen - buf_sz), "");
 	fprintf(out, "%s", use_color ? "│" : "|");
-	fprintf(out, "%*s", (int)(options.linelen - buf_sz), "");
+}
+
+static void
+display_ascii(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *out)
+{
+	UNUSED(offset);
+	_display_ascii(buf, buf_sz, options.linelen, use_color, out);
+}
+
+static void
+display_ascii_left(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *out)
+{
+	UNUSED(offset);
+	_display_ascii(buf, MIN(buf_sz, options.linelen / 2),
+		options.linelen / 2, use_color, out);
+}
+
+static void
+display_ascii_right(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *out)
+{
+	UNUSED(offset);
+	size_t linelenhalf = options.linelen / 2;
+	if (buf_sz > linelenhalf) {
+		_display_ascii(&buf[linelenhalf], buf_sz - linelenhalf,
+			linelenhalf, use_color, out);
+	}
 }
 ~~~
 
@@ -648,7 +709,8 @@ _usage(char *argv0)
 	printf("\n");
 	printf("Options:\n");
 	printf("    -f  Change info columns to display. (default: \"offset,bytes,ascii\")\n");
-	printf("        Possible values: `offset', `bytes', `ascii'.\n");
+	printf("        Possible values: `offset', `bytes', `bytes-left', `bytes-right',\n");
+	printf("                         `ascii', `ascii-left', `ascii-right'.\n");
 	printf("    -l  Number of bytes to be displayed on a line. (default: 16)\n");
 	printf("    -n  Maximum number of bytes to be read (can be used with -s flag).\n");
 	printf("    -s  Number of bytes to skip from the start of the input. (default: 0)\n");
@@ -728,9 +790,20 @@ switch back to getopt.
 					ARRAY_LEN(options.dfuncs));
 			}
 
-			if (!strcmp(column, "offset"))     options.dfuncs[i] = display_offset;
-			else if (!strcmp(column, "bytes")) options.dfuncs[i] = display_bytes;
-			else if (!strcmp(column, "ascii")) options.dfuncs[i] = display_ascii;
+			if (!strcmp(column, "offset"))
+				options.dfuncs[i] = display_offset;
+			else if (!strcmp(column, "bytes"))
+				options.dfuncs[i] = display_bytes;
+			else if (!strcmp(column, "bytes-left"))
+				options.dfuncs[i] = display_bytes_left;
+			else if (!strcmp(column, "bytes-right"))
+				options.dfuncs[i] = display_bytes_right;
+			else if (!strcmp(column, "ascii"))
+				options.dfuncs[i] = display_ascii;
+			else if (!strcmp(column, "ascii-left"))
+				options.dfuncs[i] = display_ascii_left;
+			else if (!strcmp(column, "ascii-right"))
+				options.dfuncs[i] = display_ascii_right;
 			else {
 				errx(1, "Unknown column '%s' (for -f option). "
 					"(See huxd(1) or `huxd -h` for list of columns.)",
