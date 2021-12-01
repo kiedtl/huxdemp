@@ -64,6 +64,15 @@ $ *huxd -Cnever -tclassic -l8 < file*
 	Likewise, in the sequence *02 68 c3 a1 73*, the bytes *c3 a1* would
 	be highlighted, because they both encode *á*.
 
+*-f*=_FORMAT_
+	Change the format and ordering of info columns displayed. _FORMAT_ is a
+	comma-separated list of column names, by default *"offset,bytes,ascii"*.
+
+	Available columns:
+	- *offset*
+	- *bytes*
+	- *ascii*
+
 *-n*=_LENGTH_
 	Only read _LENGTH_ bytes from the input, starting from the beginning
 	(or from _OFFSET_, if used in conjunction with the *-s* flag) of the

@@ -113,8 +113,10 @@ Makefile.
 Some utility macros.
 
 ~~~
-#define MAX(V, H) ((V) > (H) ? (V) : (H))
-#define MIN(V, H) ((V) < (H) ? (V) : (H))
+#define ARRAY_LEN(A) (sizeof(A) / sizeof((A)[0]))
+#define UNUSED(X)    ((void)(X))
+#define MAX(V, H)    ((V) > (H) ? (V) : (H))
+#define MIN(V, H)    ((V) < (H) ? (V) : (H))
 ~~~
 
 People these days should stop pretending that C's `char' is really capable of
@@ -122,6 +124,15 @@ holding a character.
 
 ~~~
 typedef unsigned char byte_t;
+~~~
+
+A typedef for display functions. There's a list of display functions to be used
+in the options struct, and each of them are called in huxdemp on the input. The
+user can reorder this list via an option, this is how column reordering is
+implemented.
+
+~~~
+typedef void (*display_func_t)(byte_t *, size_t, size_t, _Bool, FILE *);
 ~~~
 
 An enum for storing the values of options like -C and -P (i.e., when to use
@@ -154,6 +165,9 @@ struct {
 	size_t linelen;
 	uint64_t offset;
 	uint64_t length;
+
+	display_func_t dfuncs[255];
+	size_t dfuncs_sz;
 } options;
 ~~~
 
@@ -222,14 +236,10 @@ _format_char(byte_t b)
 }
 ~~~
 
-Now the juicy bit -- the function which actually does the work of displaying the
+Now the juicy bit -- the functions which actually do the work of displaying the
 input.
 
-~~~
-static void
-display(byte_t *buf, size_t sz, size_t offset, _Bool color, FILE *out)
-{
-~~~
+---
 
 Display the byte offset in hexadecimal, padding it with up to four spaces to
 the left.
@@ -243,11 +253,17 @@ the left.
   ^~
 
 ~~~
-	if (color) {
-		fprintf(out, "\x1b[37m%4zx\x1b[m    ", offset);
+static void
+display_offset(byte_t *_buf, size_t _buf_sz, size_t offset, _Bool use_color, FILE *out)
+{
+	UNUSED(_buf); UNUSED(_buf_sz);
+
+	if (use_color) {
+		fprintf(out, "\x1b[37m%4zx\x1b[m", offset);
 	} else {
-		fprintf(out, "%08zx    ", offset);
+		fprintf(out, "%08zx", offset);
 	}
+}
 ~~~
 
 Display the byte column.
@@ -272,11 +288,14 @@ Display the byte column.
         ^~~~~~~~~~~~~~~~~~~~~~~  ^~~~~~~~~~~~~~~~~~~~~~~
 
 ~~~
-	for (size_t off = offset, i = 0; i < sz; ++i, ++off) {
+static void
+display_bytes(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *out)
+{
+	for (size_t off = offset, i = 0; i < buf_sz; ++i, ++off) {
 		if (i == (options.linelen / 2))
 			fprintf(out, " ");
 
-		if (color) {
+		if (use_color) {
 			_utf8state((ssize_t)off, buf[i]);
 
 			size_t bg = 0, fg = styles[buf[i]];
@@ -310,20 +329,21 @@ LINELEN - sz   The number of hex digits that weren't printed on this line.
                printed.
 
 ~~~
-	if (color) {
+	if (use_color) {
 		fprintf(out, "\x1b[m");
 	}
 
-	if (options.linelen - sz > 0) {
-		fprintf(out, "%*s", (int)(options.linelen - sz) * 3, "");
-		if (sz <= (options.linelen / 2))
+	if (options.linelen - buf_sz > 0) {
+		fprintf(out, "%*s", (int)(options.linelen - buf_sz) * 3, "");
+		if (buf_sz <= (options.linelen / 2))
 			fprintf(out, " ");
 	}
+}
 ~~~
 
-Now print the usual four spaces, a nice Unicode vertical line-drawing glyph, and
+Print the usual four spaces, a nice Unicode vertical line-drawing glyph, and
 each character for the ASCII column styled with the escape codes specified in
-tables.c.
+tables.c. Finally, add space padding.
 
   40    72 69 20 61 73 20 68 c3  ab 20 68 61 64 20 73 70    │ri as h·· had sp│
   50    6f 6b 65 6e 20 62 65 66  6f 72 65 20 69 6e 20 54    │oken before in T│
@@ -331,16 +351,20 @@ tables.c.
                                                             ^~~~~~~~~~~~~~~~~~
 
 ~~~
-	fprintf(out, "   %s", color ? "│" : "|");
-	for (size_t off = offset, i = 0; i < sz; ++i, ++off) {
-		if (color) {
+static void
+display_ascii(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *out)
+{
+	fprintf(out, "%s", use_color ? "│" : "|");
+	for (size_t off = offset, i = 0; i < buf_sz; ++i, ++off) {
+		if (use_color) {
 			fprintf(out, "\x1b[38;5;%hdm%s\x1b[m",
 				styles[buf[i]], _format_char(buf[i]));
 		} else {
 			fprintf(out, "%s", _format_char(buf[i]));
 		}
 	}
-	fprintf(out, "%s\n", color ? "│" : "|");
+	fprintf(out, "%s", use_color ? "│" : "|");
+	fprintf(out, "%*s", (int)(options.linelen - buf_sz), "");
 }
 ~~~
 
@@ -380,7 +404,7 @@ pager(enum ActionMode mode)
 ~~~
 
 The "main main" function that's called from main() after arguments are parsed.
-We just take a path, open it (if it's not stdin), and call `display()' after
+We just take a path, open it (if it's not stdin), and call `display*()' after
 reading LINELEN bytes.
 
 ~~~
@@ -446,7 +470,13 @@ shouldn't read any more), and close the stream afterwards.
 
 		if (!(r = fread(buf, 1, max_read, fp)))
 			break;
-		display(buf, r, offset, options._color, out);
+
+		for (size_t i = 0; i < options.dfuncs_sz; ++i) {
+			(options.dfuncs[i])(buf, r, offset, options._color, out);
+			fprintf(out, "    ");
+		}
+		fprintf(out, "\n");
+
 		offset += r;
 	}
 
@@ -617,6 +647,8 @@ _usage(char *argv0)
 	printf("    -V  Print huxd's version and exit.\n");
 	printf("\n");
 	printf("Options:\n");
+	printf("    -f  Change info columns to display. (default: \"offset,bytes,ascii\")\n");
+	printf("        Possible values: `offset', `bytes', `ascii'.\n");
 	printf("    -l  Number of bytes to be displayed on a line. (default: 16)\n");
 	printf("    -n  Maximum number of bytes to be read (can be used with -s flag).\n");
 	printf("    -s  Number of bytes to skip from the start of the input. (default: 0)\n");
@@ -656,6 +688,10 @@ but we're setting some options to zero anyway here to be explicit.
 	options.linelen = 16;
 	options.offset = 0;
 	options.length = 0;
+	options.dfuncs[0] = display_offset;
+	options.dfuncs[1] = display_bytes;
+	options.dfuncs[2] = display_ascii;
+	options.dfuncs_sz = 3;
 ~~~
 
 A color config that's evaluated by config() (before $HUXD_COLORS) to set the
@@ -673,6 +709,39 @@ switch back to getopt.
 	char *optarg;
 
 	ARGBEGIN {
+	break; case 'f':
+		/* clear old dfuncs */
+		memset(options.dfuncs, 0x0, options.dfuncs_sz * sizeof(options.dfuncs[0]));
+		options.dfuncs_sz = 0;
+
+		optarg = EARGF(_usage(argv0));
+		char *orig_optarg = strdup(optarg);
+		char *ptr = optarg;
+
+		for (size_t i = 0; ptr;) {
+			char *column = strsep(&ptr, ",");
+			if (*column == '\0') continue;
+
+			if (i > ARRAY_LEN(options.dfuncs)) {
+				errx(1, "-f recieved more than %zu items. "
+					"what were you trying to do anyway?",
+					ARRAY_LEN(options.dfuncs));
+			}
+
+			if (!strcmp(column, "offset"))     options.dfuncs[i] = display_offset;
+			else if (!strcmp(column, "bytes")) options.dfuncs[i] = display_bytes;
+			else if (!strcmp(column, "ascii")) options.dfuncs[i] = display_ascii;
+			else {
+				errx(1, "Unknown column '%s' (for -f option). "
+					"(See huxd(1) or `huxd -h` for list of columns.)",
+					orig_optarg);
+			}
+
+			++i;
+			options.dfuncs_sz = i;
+		}
+
+		free(orig_optarg);
 	break; case 'l':
 		optarg = EARGF(_usage(argv0));
 		options.linelen = strtol(optarg, NULL, 0);
