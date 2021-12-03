@@ -696,8 +696,9 @@ static _Noreturn void
 _usage(char *argv0)
 {
 	printf("Usage: %s [-hV]\n", argv0);
-	printf("       %s [-cu] [-n length] [-s offset] [-t table]\n", argv0);
-	printf("       %*s [-C color?] [-P pager?] [FILE]...\n", (int)strlen(argv0), "");
+	printf("       %s [-cu] [-n length] [-s offset] [-l bytes] [-t table]\n", argv0);
+	printf("       %*s [-f format] [-C color?] [-P pager?] [FILE]...\n",
+		(int)strlen(argv0), "");
 	printf("\n");
 	printf("Flags:\n");
 	printf("    -c  Use Unicode glyphs to display the lower control\n");
