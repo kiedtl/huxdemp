@@ -1,5 +1,7 @@
 CMD      = @
 
+LUA     ?= lua5.3
+
 VERSION  = 0.2.1
 NAME     = huxd
 PKGNAME  = $(NAME)-$(shell uname -s)-$(shell uname -m)-$(VERSION)
@@ -20,11 +22,11 @@ WARNING  = -Wall -Wextra -Wold-style-definition -Wmissing-prototypes \
 	   -Werror=implicit-function-declaration -Werror=return-type
 
 DEF      = -DVERSION=\"$(VERSION)\"
-INCL     =
+INCL     = -I/usr/include/$(LUA)
 CC       = cc
 CFLAGS   = $(DEF) $(INCL) $(WARNING) -funsigned-char
 LD       = bfd
-LDFLAGS  = -fuse-ld=$(LD) -L/usr/include
+LDFLAGS  = -fuse-ld=$(LD) -l$(LUA) -L/usr/include
 
 .PHONY: all
 all: debug $(NAME).1
@@ -35,15 +37,15 @@ run: debug
 
 .PHONY: debug
 debug: O_CFLAGS  := -Og -g $(CFLAGS)
-debug: O_LDFLAGS :=
+debug: O_LDFLAGS := $(LDFLAGS)
 debug: $(NAME)
 
 .PHONY: release
 release: O_CFLAGS  := -O3 $(CFLAGS)
-release: O_LDFLAGS := -flto -s -march=native -mtune=native
+release: O_LDFLAGS := -flto -s -march=native -mtune=native $(LDFLAGS)
 release: $(NAME)
 
-main.c: tables.c utf8.c
+main.c: lua.c tables.c utf8.c
 
 $(NAME): $(OBJ) $(OBJ3) main.c
 	@printf "    %-8s%s\n" "CCLD" $@

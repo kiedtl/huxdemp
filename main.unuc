@@ -88,6 +88,9 @@ Now to include other source files.
   to work with. However, it does things the strictly POSIX way and refuses to
   parse flags after a non-flag argument was recieved.
 
+* lua.c: Some Lua utility functions. Also includes the lua headers (lauxlib.h,
+  lua.h, etc).
+
 * tables.c: Various 'tables' of strings that are used to display characters.
   E.g. "·" for 0x12, "A" for 0x41, etc.
 
@@ -105,6 +108,7 @@ Makefile.
 
 ~~~
 #include "arg.h"
+#include "lua.c"
 #include "tables.c"
 #include "utf8.c"
 #include "range.c"
@@ -126,13 +130,22 @@ holding a character.
 typedef unsigned char byte_t;
 ~~~
 
-A typedef for display functions. There's a list of display functions to be used
-in the options struct, and each of them are called in huxdemp on the input. The
-user can reorder this list via an option, this is how column reordering is
+The various builtin display functions. There's a list of display functions to be
+used in the options struct, and each of them are called in huxdemp on the input.
+The user can reorder this list via an option; this is how column reordering is
 implemented.
 
 ~~~
-typedef void (*display_func_t)(byte_t *, size_t, size_t, _Bool, FILE *);
+enum Column {
+	CO_Offset,
+	CO_Bytes,
+	CO_BytesLeft,
+	CO_BytesRight,
+	CO_Ascii,
+	CO_AsciiLeft,
+	CO_AsciiRight,
+	CO_Plugin,
+};
 ~~~
 
 An enum for storing the values of options like -C and -P (i.e., when to use
@@ -166,7 +179,8 @@ struct {
 	uint64_t offset;
 	uint64_t length;
 
-	display_func_t dfuncs[255];
+	enum Column dfuncs[255];
+	char dfunc_names[255][255];
 	size_t dfuncs_sz;
 } options;
 ~~~
@@ -241,6 +255,42 @@ input.
 
 ---
 
+~~~
+static void
+call_plugin(size_t func_index, byte_t *buf, size_t buf_sz, size_t offset,
+	_Bool use_color, FILE *out)
+{
+	char *func_name = strdup(options.dfunc_names[func_index]);
+	char *plugin_name = func_name;
+	char *plugin_func = "main";
+
+	char *dash = strchr(func_name, '-');
+	if (dash) {
+		*dash = '\0';
+		plugin_func = dash + 1;
+	}
+
+	lua_newtable(L);
+	for (size_t i = 0; i < buf_sz; ++i) {
+		lua_pushinteger(L, (lua_Integer)(i + 1));
+		lua_pushinteger(L, (lua_Integer)buf[i]);
+		lua_settable(L, -3);
+	}
+
+	lua_pushinteger(L, (lua_Integer)offset);
+	lua_pushboolean(L, use_color);
+
+	luaL_Stream *p = (luaL_Stream *)lua_newuserdata(L, sizeof(luaL_Stream));
+	p->closef = &fake_pclose;
+	p->f = out;
+	luaL_setmetatable(L, LUA_FILEHANDLE);
+
+	luau_call(L, plugin_name, plugin_func, 4, 0);
+
+	free(func_name);
+}
+~~~
+
 Display the byte offset in hexadecimal, padding it with up to four spaces to
 the left.
 
@@ -254,10 +304,8 @@ the left.
 
 ~~~
 static void
-display_offset(byte_t *_buf, size_t _buf_sz, size_t offset, _Bool use_color, FILE *out)
+display_offset(size_t offset, _Bool use_color, FILE *out)
 {
-	UNUSED(_buf); UNUSED(_buf_sz);
-
 	if (use_color) {
 		fprintf(out, "\x1b[37m%4zx\x1b[m", offset);
 	} else {
@@ -387,7 +435,7 @@ tables.c. Finally, add space padding.
 
 ~~~
 static void
-_display_ascii(byte_t *buf, size_t buf_sz, size_t linelen, _Bool use_color, FILE *out)
+display_ascii(byte_t *buf, size_t buf_sz, size_t linelen, _Bool use_color, FILE *out)
 {
 	fprintf(out, "%s", use_color ? "│" : "|");
 	for (size_t i = 0; i < buf_sz; ++i) {
@@ -400,32 +448,6 @@ _display_ascii(byte_t *buf, size_t buf_sz, size_t linelen, _Bool use_color, FILE
 	}
 	fprintf(out, "%*s", (int)(linelen - buf_sz), "");
 	fprintf(out, "%s", use_color ? "│" : "|");
-}
-
-static void
-display_ascii(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *out)
-{
-	UNUSED(offset);
-	_display_ascii(buf, buf_sz, options.linelen, use_color, out);
-}
-
-static void
-display_ascii_left(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *out)
-{
-	UNUSED(offset);
-	_display_ascii(buf, MIN(buf_sz, options.linelen / 2),
-		options.linelen / 2, use_color, out);
-}
-
-static void
-display_ascii_right(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, FILE *out)
-{
-	UNUSED(offset);
-	size_t linelenhalf = options.linelen / 2;
-	if (buf_sz > linelenhalf) {
-		_display_ascii(&buf[linelenhalf], buf_sz - linelenhalf,
-			linelenhalf, use_color, out);
-	}
 }
 ~~~
 
@@ -533,7 +555,32 @@ shouldn't read any more), and close the stream afterwards.
 			break;
 
 		for (size_t i = 0; i < options.dfuncs_sz; ++i) {
-			(options.dfuncs[i])(buf, r, offset, options._color, out);
+			switch (options.dfuncs[i]) {
+			break; case CO_Offset:
+				display_offset(offset, options._color, out);
+			break; case CO_Bytes:
+				display_bytes(buf, r, offset, options._color, out);
+			break; case CO_BytesLeft:
+				display_bytes_left(buf, r, offset, options._color, out);
+			break; case CO_BytesRight:
+				display_bytes_right(buf, r, offset, options._color, out);
+			break; case CO_Ascii:
+				display_ascii(buf, r, options.linelen,
+					options._color, out);
+			break; case CO_AsciiLeft:
+				display_ascii(buf, MIN(r, options.linelen / 2),
+					options.linelen / 2, options._color, out);
+			break; case CO_AsciiRight:
+				;
+				size_t linelenhalf = options.linelen / 2;
+				if (r > linelenhalf) {
+					display_ascii(&buf[linelenhalf], r - linelenhalf,
+						linelenhalf, options._color, out);
+				}
+			break; case CO_Plugin:
+				call_plugin(i, buf, r, offset, options._color, out);
+			}
+
 			fprintf(out, "    ");
 		}
 		fprintf(out, "\n");
@@ -751,9 +798,9 @@ but we're setting some options to zero anyway here to be explicit.
 	options.linelen = 16;
 	options.offset = 0;
 	options.length = 0;
-	options.dfuncs[0] = display_offset;
-	options.dfuncs[1] = display_bytes;
-	options.dfuncs[2] = display_ascii;
+	options.dfuncs[0] = CO_Offset;
+	options.dfuncs[1] = CO_Bytes;
+	options.dfuncs[2] = CO_Ascii;
 	options.dfuncs_sz = 3;
 ~~~
 
@@ -763,6 +810,13 @@ default colors.
 ~~~
 	char *default_colors =
 		"printable=15;blackspace=1;nul=8;whitespace=8;128-255=3;1-8=6;11-31=6";
+~~~
+
+Initialize Lua. (We're doing this now, instead of later, because we'll be
+loading lua files during arg parsing.)
+
+~~~
+	luau_init(&L);
 ~~~
 
 Parse arguments with `arg.h'. Yes, the macros are ugly. No, I am not going to
@@ -785,6 +839,8 @@ switch back to getopt.
 			char *column = strsep(&ptr, ",");
 			if (*column == '\0') continue;
 
+			strcpy(options.dfunc_names[i], column);
+
 			if (i > ARRAY_LEN(options.dfuncs)) {
 				errx(1, "-f recieved more than %zu items. "
 					"what were you trying to do anyway?",
@@ -792,23 +848,31 @@ switch back to getopt.
 			}
 
 			if (!strcmp(column, "offset"))
-				options.dfuncs[i] = display_offset;
+				options.dfuncs[i] = CO_Offset;
 			else if (!strcmp(column, "bytes"))
-				options.dfuncs[i] = display_bytes;
+				options.dfuncs[i] = CO_Bytes;
 			else if (!strcmp(column, "bytes-left"))
-				options.dfuncs[i] = display_bytes_left;
+				options.dfuncs[i] = CO_BytesLeft;
 			else if (!strcmp(column, "bytes-right"))
-				options.dfuncs[i] = display_bytes_right;
+				options.dfuncs[i] = CO_BytesRight;
 			else if (!strcmp(column, "ascii"))
-				options.dfuncs[i] = display_ascii;
+				options.dfuncs[i] = CO_Ascii;
 			else if (!strcmp(column, "ascii-left"))
-				options.dfuncs[i] = display_ascii_left;
+				options.dfuncs[i] = CO_AsciiLeft;
 			else if (!strcmp(column, "ascii-right"))
-				options.dfuncs[i] = display_ascii_right;
+				options.dfuncs[i] = CO_AsciiRight;
 			else {
-				errx(1, "Unknown column '%s' (for -f option). "
-					"(See huxd(1) or `huxd -h` for list of columns.)",
-					orig_optarg);
+				char *dash = strchr(column, '-');
+				if (dash) *dash = '\0';
+
+				lua_pushstring(L, (const char *)column);
+				luau_call(L, NULL, "require", 1, 1);
+				if (lua_type(L, lua_gettop(L)) == LUA_TNIL) {
+					errx(1, "Couldn't load plugin '%s'.", column);
+				}
+				lua_setglobal(L, column);
+
+				options.dfuncs[i] = CO_Plugin;
 			}
 
 			++i;
