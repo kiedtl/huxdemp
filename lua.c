@@ -86,6 +86,9 @@ luau_call(lua_State *pL, const char *namespace, const char *fnname, size_t nargs
 		lua_getglobal(pL, fnname);
 	}
 
+	/* assert function isn't nil */
+	assert(lua_type(L, lua_gettop(L)) != LUA_TNIL);
+
 	/* move function before args. */
 	lua_insert(pL, -nargs - 1);
 
