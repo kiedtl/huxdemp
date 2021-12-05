@@ -45,16 +45,10 @@ static int
 luau_panic(lua_State *pL)
 {
 	char *err = (char *)lua_tostring(pL, -1);
-	fprintf(stderr, "Lua error: %s\n", err);
-
-	fputc('\n', stderr);
-	luau_sdump(pL);
-	fputc('\n', stderr);
-
 	luaL_traceback(pL, pL, err, 0);
-	fprintf(stderr, "Lua traceback: %s\n\n", lua_tostring(pL, -1));
+	fprintf(stderr, "Lua error: %s\n\n", lua_tostring(pL, -1));
 
-	errx(1, "Fatal Lua error.");
+	errx(1, "Fatal Lua error, exiting.");
 
 	return 0;
 }
@@ -92,7 +86,7 @@ luau_call(lua_State *pL, const char *namespace, const char *fnname, size_t nargs
 	/* move function before args. */
 	lua_insert(pL, -nargs - 1);
 
-	if (lua_pcall(pL, nargs, nret, -nargs - 1) == LUA_ERRERR) {
+	if (lua_pcall(pL, nargs, nret, 0) != 0) {
 		luau_panic(pL);
 	}
 }

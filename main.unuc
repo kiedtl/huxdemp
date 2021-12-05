@@ -867,9 +867,6 @@ switch back to getopt.
 
 				lua_pushstring(L, (const char *)column);
 				luau_call(L, NULL, "require", 1, 1);
-				if (lua_type(L, lua_gettop(L)) == LUA_TNIL) {
-					errx(1, "Couldn't load plugin '%s'.", column);
-				}
 				lua_setglobal(L, column);
 
 				options.dfuncs[i] = CO_Plugin;
