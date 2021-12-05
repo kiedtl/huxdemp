@@ -1,5 +1,7 @@
 huxd
 main.c
+builtin.c
 unu
+embedc
 huxd.1
 *.xz

@@ -9,6 +9,7 @@ PKGNAME  = $(NAME)-$(shell uname -s)-$(shell uname -m)-$(VERSION)
 DESTDIR  =
 PREFIX   = /usr/local
 
+BUILTIN  = builtin/chip8.lua:chip8
 SRC      =
 SRC3     =
 OBJ      = $(SRC:.c=.o)
@@ -45,7 +46,7 @@ release: O_CFLAGS  := -O3 $(CFLAGS)
 release: O_LDFLAGS := -flto -s -march=native -mtune=native $(LDFLAGS)
 release: $(NAME)
 
-main.c: lua.c tables.c utf8.c
+main.c: lua.c tables.c utf8.c builtin.c
 
 $(NAME): $(OBJ) $(OBJ3) main.c
 	@printf "    %-8s%s\n" "CCLD" $@
@@ -63,13 +64,23 @@ $(NAME): $(OBJ) $(OBJ3) main.c
 	@printf "    %-8s%s\n" "SCDOC" $@
 	$(CMD)scdoc < $^ > $@
 
+builtin.c: embedc
+builtin.c: $(foreach builtin,$(BUILTIN),$(firstword $(subst :, ,$(builtin))))
+	@printf "    %-8s%s\n" "EMBEDC" $@
+	$(CMD)./embedc $(BUILTIN) > $@
+
+embedc: embedc.c
+	@printf "    %-8s%s\n" "CCLD" $@
+	$(CMD)$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
+
 unu: unu.c
 	@printf "    %-8s%s\n" "CCLD" $@
 	$(CMD)$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 .PHONY: clean
 clean:
-	rm -rf unu main.c $(NAME) $(OBJ)
+	rm -rf unu embedc builtin.c
+	rm -rf main.c $(NAME) $(OBJ)
 	rm -rf $(NAME).1
 	rm -rf $(PKGNAME) $(PKGNAME).tar.xz
 

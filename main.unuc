@@ -88,6 +88,9 @@ Now to include other source files.
   to work with. However, it does things the strictly POSIX way and refuses to
   parse flags after a non-flag argument was recieved.
 
+* builtin.c: Some builtin plugins. Basically, embedded Lua code that's evaluated
+  at runtime.
+
 * lua.c: Some Lua utility functions. Also includes the lua headers (lauxlib.h,
   lua.h, etc).
 
@@ -108,6 +111,7 @@ Makefile.
 
 ~~~
 #include "arg.h"
+#include "builtin.c"
 #include "lua.c"
 #include "tables.c"
 #include "utf8.c"
@@ -865,9 +869,21 @@ switch back to getopt.
 				char *dash = strchr(column, '-');
 				if (dash) *dash = '\0';
 
-				lua_pushstring(L, (const char *)column);
-				luau_call(L, NULL, "require", 1, 1);
-				lua_setglobal(L, column);
+				_Bool found_embedded = false;
+				for (size_t i = 0; i < ARRAY_LEN(embedded_files); i += 2) {
+					if (!strcmp(column, embedded_files[i])) {
+					        int e = luaL_dostring(L, embedded_files[i + 1]);
+						if (e) luau_panic(L);
+        					lua_setglobal(L, column);
+						found_embedded = true;
+					}
+				}
+
+				if (!found_embedded) {
+					lua_pushstring(L, (const char *)column);
+					luau_call(L, NULL, "require", 1, 1);
+					lua_setglobal(L, column);
+				}
 
 				options.dfuncs[i] = CO_Plugin;
 			}
