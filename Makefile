@@ -17,9 +17,9 @@ OBJ3     = $(SRC3:.c=.o)
 WARNING  = -Wall -Wextra -Wold-style-definition -Wmissing-prototypes \
 	   -Winit-self -Wfloat-equal -Wstrict-prototypes -Wredundant-decls \
 	   -Wendif-labels -Wstrict-aliasing=2 -Woverflow -Wformat=2 -Wtrigraphs \
-	   -Wmissing-include-dirs -Wno-format-nonliteral -Wunused-parameter \
-	   -Wincompatible-pointer-types \
-	   -Werror=implicit-function-declaration -Werror=return-type
+	   -Wmissing-include-dirs -Wunused-parameter -Werror=return-type \
+	   -Wincompatible-pointer-types -Werror=implicit-function-declaration \
+	   -Wno-unused-function
 
 DEF      = -DVERSION=\"$(VERSION)\"
 INCL     = -I/usr/include/$(LUA)
