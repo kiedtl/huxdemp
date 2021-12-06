@@ -11,9 +11,6 @@
 #error "huxdemp requires Lua >= v5.2."
 #endif
 
-#define luau_rawlen(ST, NM) lua_rawlen(ST, NM)
-#define luau_setfuncs(ST, FN) luaL_setfuncs(ST,   FN,  0);
-
 static lua_State *L = NULL;
 
 static void
@@ -34,7 +31,7 @@ luau_sdump(lua_State *pL)
 			fprintf(stderr, "%4d: [nil]\n", i);
 		break; default:
 			fprintf(stderr, "%4d: [%s] #%d <%p>\n", i, lua_typename(pL, t),
-				(int) luau_rawlen(pL, i), lua_topointer(pL, i));
+				(int)lua_rawlen(pL, i), lua_topointer(pL, i));
 		break;
 		}
 	}
@@ -123,4 +120,31 @@ luau_evalstring(lua_State *pL, char *name, char *origin, char *stuff)
 	int reval = lua_pcall(L, 0, LUA_MULTRET, 0);
 	if (reval != LUA_OK) luau_panic(pL);
         lua_setglobal(pL, name);
+}
+
+// ---
+
+static int
+api_option_linewidth(lua_State *pL)
+{
+        lua_pushinteger(pL, (lua_Integer)options.linelen);
+        return 1;
+}
+
+static const struct luaL_Reg huxdemp_lib[] = {
+        { "linewidth",   api_option_linewidth },
+        { NULL, NULL },
+};
+
+static int
+luau_openlib(lua_State *pL)
+{
+        char *lib = (char *) luaL_checkstring(pL, 1);
+
+        lua_newtable(L);
+        if (!strcmp(lib, "huxdemp")) {
+                luaL_setfuncs(pL, huxdemp_lib, 0);
+        }
+
+        return 1;
 }

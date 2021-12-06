@@ -2,6 +2,8 @@
 -- CHIP-8 opcodes are always aligned to 2. If we're on an odd offset,
 -- disassembling will be completely screwed.
 
+local huxdemp = require("huxdemp")
+
 local M = {}
 
 local styles = {
@@ -159,6 +161,12 @@ function M.main(buffer, offset, use_color, out)
 
         i = i + 2
     ::continue::
+    end
+
+    local linewidth = huxdemp.linewidth()
+    if #buffer < linewidth then
+        local pad = math.floor(((linewidth / 2) - math.ceil(#buffer / 2)) * 5)
+        out:write((" "):rep(pad))
     end
 end
 

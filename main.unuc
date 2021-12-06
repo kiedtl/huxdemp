@@ -81,42 +81,6 @@ TODO: remove the requirement for `unistd.h'.
 #include <unistd.h>  /* for isatty, STDOUT_FILENO */
 ~~~
 
-Now to include other source files.
-
-* arg.h: The ubiquitious arg.h you would find in many suckless.org projects.
-  It's used to parse arguments in place of getopt, as I find it slightly easier
-  to work with. However, it does things the strictly POSIX way and refuses to
-  parse flags after a non-flag argument was recieved.
-
-* builtin.c: Some builtin plugins. Basically, embedded Lua code that's evaluated
-  at runtime.
-
-* lua.c: Some Lua utility functions. Also includes the lua headers (lauxlib.h,
-  lua.h, etc).
-
-* tables.c: Various 'tables' of strings that are used to display characters.
-  E.g. "·" for 0x12, "A" for 0x41, etc.
-
-* range.c: Utility funcs for parsing ranges (e.g., "0-3", "1,2,3-4,5", etc).
-  Used for parsing $HUXD_COLORS.
-
-* utf8.c: An extremely simple UTF8 library proudly stolen from the termbox[1]
-  source code.
-
-The C files are directly included into main.c (instead of being compiled into
-their own object files) because I'm too lazy to add a few more lines to the
-Makefile.
-
-[1]: https://github.com/nsf/termbox
-
-~~~
-#include "arg.h"
-#include "builtin.c"
-#include "lua.c"
-#include "tables.c"
-#include "utf8.c"
-#include "range.c"
-~~~
 
 Some utility macros.
 
@@ -207,6 +171,47 @@ This is reset after each file is processed, for obvious reasons.
 
 ~~~
 static ssize_t utf8_state[] = { -1, -1 };
+~~~
+
+Now to include other source files.
+
+We're doing this *here* instead of back when we included other standard files,
+because we want included C files to be able to reference the globals defined
+earlier (like the options struct).
+
+* arg.h: The ubiquitious arg.h you would find in many suckless.org projects.
+  It's used to parse arguments in place of getopt, as I find it slightly easier
+  to work with. However, it does things the strictly POSIX way and refuses to
+  parse flags after a non-flag argument was recieved.
+
+* builtin.c: Some builtin plugins. Basically, embedded Lua code that's evaluated
+  at runtime.
+
+* lua.c: Some Lua utility functions. Also includes the lua headers (lauxlib.h,
+  lua.h, etc).
+
+* tables.c: Various 'tables' of strings that are used to display characters.
+  E.g. "·" for 0x12, "A" for 0x41, etc.
+
+* range.c: Utility funcs for parsing ranges (e.g., "0-3", "1,2,3-4,5", etc).
+  Used for parsing $HUXD_COLORS.
+
+* utf8.c: An extremely simple UTF8 library proudly stolen from the termbox[1]
+  source code.
+
+The C files are directly included into main.c (instead of being compiled into
+their own object files) because I'm too lazy to add a few more lines to the
+Makefile.
+
+[1]: https://github.com/nsf/termbox
+
+~~~
+#include "arg.h"
+#include "builtin.c"
+#include "lua.c"
+#include "tables.c"
+#include "utf8.c"
+#include "range.c"
 ~~~
 
 This function is run before each item of the byte column is printed to update
@@ -821,6 +826,7 @@ loading lua files during arg parsing.)
 
 ~~~
 	luau_init(&L);
+	luaL_requiref(L, "huxdemp", luau_openlib, false);
 ~~~
 
 Parse arguments with `arg.h'. Yes, the macros are ugly. No, I am not going to
