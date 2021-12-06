@@ -17,7 +17,11 @@ main(int argc, char **argv)
 		return 1;
 	}
 
-	printf("char *embedded_files[] = {\n");
+	printf("struct {\n"
+		"	char *name;\n"
+		"	char *path;\n"
+		"	char *data;\n"
+		"} embedded_files[] = {\n");
 
 	for (size_t i = 1; i < (size_t)argc; ++i) {
 		char *path = argv[i];
@@ -34,13 +38,14 @@ main(int argc, char **argv)
 			err(1, "%s: Cannot open", path);
 		}
 
-		printf("\t\"%s\",", name);
+		printf("\t{\n\t\t\"%s\", \"@%s\",", name, path);
 
 		int cols = 1;
 		int c;
 		while ((c = fgetc(in)) != EOF) {
 			if (cols == 1) {
-				printf("\n\"");
+				printf("\n\t\t\"");
+				cols += 16;
 			}
 			switch (c) {
 			case '\\':
@@ -64,7 +69,7 @@ main(int argc, char **argv)
 				break;
 			}
 
-			if (cols >= 80) {
+			if (cols >= 90) {
 				cols = 1;
 				printf("\"");
 			}
@@ -73,7 +78,7 @@ main(int argc, char **argv)
 		if (cols != 1) {
 			printf("\"");
 		}
-		printf(",\n");
+		printf("\n\t},\n");
 	}
 
 	printf("};\n");

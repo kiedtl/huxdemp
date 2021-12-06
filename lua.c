@@ -115,7 +115,7 @@ luau_reader(lua_State *pL, void *ud, size_t *size)
 }
 
 static void
-luau_evalstring(lua_State *pL, char *name, char *stuff, char *origin)
+luau_evalstring(lua_State *pL, char *name, char *origin, char *stuff)
 {
 	struct ReaderState state = { stuff, strlen(stuff) };
 	int rload = lua_load(pL, luau_reader, (void *)&state, origin, NULL);

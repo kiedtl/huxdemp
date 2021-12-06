@@ -156,7 +156,7 @@ function M.main(buffer, offset, use_color, out)
         if opstring == "F000" then
             skip_next_op = true
         end
-j
+
         i = i + 2
     ::continue::
     end

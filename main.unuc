@@ -870,12 +870,12 @@ switch back to getopt.
 				if (dash) *dash = '\0';
 
 				_Bool found_embedded = false;
-				for (size_t i = 0; i < ARRAY_LEN(embedded_files); i += 2) {
-					if (!strcmp(column, &embedded_files[i][1])) {
+				for (size_t i = 0; i < ARRAY_LEN(embedded_files); ++i) {
+					if (!strcmp(column, embedded_files[i].name)) {
 						luau_evalstring(L,
-							column,
-							embedded_files[i + 1],
-							embedded_files[i]
+							embedded_files[i].name,
+							embedded_files[i].path,
+							embedded_files[i].data
 						);
 						found_embedded = true;
 					}
