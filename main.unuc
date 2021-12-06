@@ -871,10 +871,12 @@ switch back to getopt.
 
 				_Bool found_embedded = false;
 				for (size_t i = 0; i < ARRAY_LEN(embedded_files); i += 2) {
-					if (!strcmp(column, embedded_files[i])) {
-					        int e = luaL_dostring(L, embedded_files[i + 1]);
-						if (e) luau_panic(L);
-        					lua_setglobal(L, column);
+					if (!strcmp(column, &embedded_files[i][1])) {
+						luau_evalstring(L,
+							column,
+							embedded_files[i + 1],
+							embedded_files[i]
+						);
 						found_embedded = true;
 					}
 				}

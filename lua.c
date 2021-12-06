@@ -97,3 +97,30 @@ fake_pclose(lua_State *pL)
 	lua_pop(pL, -1);
 	return 0;
 }
+
+struct ReaderState {
+	char *data;
+	size_t size;
+};
+
+static const char *
+luau_reader(lua_State *pL, void *ud, size_t *size)
+{
+	(void)pL;
+	struct ReaderState *state = (struct ReaderState *)ud;
+	if (state->size == 0) return NULL;
+	*size = state->size;
+	state->size = 0;
+	return state->data;
+}
+
+static void
+luau_evalstring(lua_State *pL, char *name, char *stuff, char *origin)
+{
+	struct ReaderState state = { stuff, strlen(stuff) };
+	int rload = lua_load(pL, luau_reader, (void *)&state, origin, NULL);
+	if (rload != LUA_OK) luau_panic(pL);
+	int reval = lua_pcall(L, 0, LUA_MULTRET, 0);
+	if (reval != LUA_OK) luau_panic(pL);
+        lua_setglobal(pL, name);
+}
