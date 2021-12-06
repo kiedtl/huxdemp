@@ -127,7 +127,7 @@ function M.main(buffer, offset, use_color, out)
         if use_color then
             return style .. text .. "\x1b[m"
         end
-        return ""
+        return text
     end
 
     local i = 1
