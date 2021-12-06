@@ -83,8 +83,13 @@ luau_call(lua_State *pL, const char *namespace, const char *fnname, size_t nargs
 	/* move function before args. */
 	lua_insert(pL, -nargs - 1);
 
-	if (lua_pcall(pL, nargs, nret, 0) != 0) {
-		luau_panic(pL);
+	/* move error func before function and args. */
+	size_t errfn_pos = (size_t)lua_gettop(pL) - nargs - 1;
+	lua_pushcfunction(pL, luau_panic);
+	lua_insert(pL, -nargs - 2);
+
+	if (lua_pcall(pL, nargs, nret, -nargs - 2) == LUA_OK) {
+		lua_remove(pL, errfn_pos);
 	}
 }
 
@@ -94,6 +99,8 @@ fake_pclose(lua_State *pL)
 	lua_pop(pL, -1);
 	return 0;
 }
+
+// ---
 
 struct ReaderState {
 	char *data;
@@ -131,8 +138,21 @@ api_option_linewidth(lua_State *pL)
         return 1;
 }
 
+static int
+api_color_for(lua_State *pL)
+{
+	lua_Integer a = luaL_checkinteger(pL, 1);
+	if ((byte_t)a != a) {
+		lua_pushnil(pL);
+	} else {
+		lua_pushinteger(pL, styles[(int)a]);
+	}
+        return 1;
+}
+
 static const struct luaL_Reg huxdemp_lib[] = {
         { "linewidth",   api_option_linewidth },
+        { "color_for",   api_color_for },
         { NULL, NULL },
 };
 
