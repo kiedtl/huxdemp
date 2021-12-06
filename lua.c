@@ -100,6 +100,40 @@ fake_pclose(lua_State *pL)
 	return 0;
 }
 
+static void
+call_plugin(size_t func_index, byte_t *buf, size_t buf_sz, size_t offset,
+	_Bool use_color, FILE *out)
+{
+	char *func_name = strdup(options.dfunc_names[func_index]);
+	char *plugin_name = func_name;
+	char *plugin_func = "main";
+
+	char *dash = strchr(func_name, '-');
+	if (dash) {
+		*dash = '\0';
+		plugin_func = dash + 1;
+	}
+
+	lua_newtable(L);
+	for (size_t i = 0; i < buf_sz; ++i) {
+		lua_pushinteger(L, (lua_Integer)(i + 1));
+		lua_pushinteger(L, (lua_Integer)buf[i]);
+		lua_settable(L, -3);
+	}
+
+	lua_pushinteger(L, (lua_Integer)offset);
+	lua_pushboolean(L, use_color);
+
+	luaL_Stream *p = (luaL_Stream *)lua_newuserdata(L, sizeof(luaL_Stream));
+	p->closef = &fake_pclose;
+	p->f = out;
+	luaL_setmetatable(L, LUA_FILEHANDLE);
+
+	luau_call(L, plugin_name, plugin_func, 4, 0);
+
+	free(func_name);
+}
+
 // ---
 
 struct ReaderState {

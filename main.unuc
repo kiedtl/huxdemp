@@ -8,10 +8,11 @@ existing alternatives to the venerable hexdump.
 Here's a list of alternatives to hexdump that I have tried previously. If
 huxdemp isn't your thing, you may want to try one of these:
 
-* xd
-* hexyl
-* xxd
+* xd       https://bitbucket.org/delan/xd
+* hexyl    https://github.com/sharkdp/hexyl
+* hex      https://github.com/sitkevij/hex
 
+(See COMPARISON.md for a comparison between various hexdumpers.)
 
 ## Unu
 
@@ -45,8 +46,8 @@ to your ~/.vim/:
 
 First, the includes.
 
-* err.h: A little-known header that contains various utility functions for
-  printing error/warning messages (see err(3)). It's used here for warn(3).
+* err.h: A little-known header, originating in BSD, that contains various
+  utility functions for printing error/warning messages (see err(3)).
 
 * ctype.h: Included for isprint(3), which checks whether a character is a
   control character or not.
@@ -60,15 +61,15 @@ First, the includes.
 
 * string.h: Used for `strcmp'/`strncmp', the sole string function used in this
   program.
+
 * stdlib.h: used for `getenv'.
+
 * unistd.h: used for `popen`/`pclose`, `isatty' and the `STDOUT_FILENO'
   constant.
 
-`size_t' used instead of `int' because it's faster to use an unsigned integer,
-and it's almost always faster to use an integer with a bit size equivalent to
-the CPU's word size(?).
-
-TODO: remove the requirement for `unistd.h'.
+`size_t' used throughout instead of `int' where possible because it's faster to
+use an unsigned integer, and it's almost always faster to use an integer with a
+bit size equivalent to the CPU's word size(?).
 
 ~~~
 #include <err.h>
@@ -81,8 +82,11 @@ TODO: remove the requirement for `unistd.h'.
 #include <unistd.h>  /* for isatty, STDOUT_FILENO */
 ~~~
 
-
 Some utility macros.
+
+* ARRAY_LEN returns the length of a statically-allocated array.
+* UNUSED marks a function parameter as "unused" so we don't get warnings for it.
+* MAX and MIN do what you'd expect.
 
 ~~~
 #define ARRAY_LEN(A) (sizeof(A) / sizeof((A)[0]))
@@ -91,8 +95,8 @@ Some utility macros.
 #define MIN(V, H)    ((V) < (H) ? (V) : (H))
 ~~~
 
-People these days should stop pretending that C's `char' is really capable of
-holding a character.
+People these days should stop pretending that C's `char' is really a character.
+Plus byte_t is more readable.
 
 ~~~
 typedef unsigned char byte_t;
@@ -187,14 +191,14 @@ earlier (like the options struct).
 * builtin.c: Some builtin plugins. Basically, embedded Lua code that's evaluated
   at runtime.
 
-* lua.c: Some Lua utility functions. Also includes the lua headers (lauxlib.h,
+* lua.c: Lua utility functions. Also includes the lua headers (lauxlib.h,
   lua.h, etc).
 
 * tables.c: Various 'tables' of strings that are used to display characters.
   E.g. "·" for 0x12, "A" for 0x41, etc.
 
 * range.c: Utility funcs for parsing ranges (e.g., "0-3", "1,2,3-4,5", etc).
-  Used for parsing $HUXD_COLORS.
+  Used for parsing $HUXD_COLORS in config().
 
 * utf8.c: An extremely simple UTF8 library proudly stolen from the termbox[1]
   source code.
@@ -242,6 +246,10 @@ column.
 * Otherwise, return the byte itself (unless it's unprintable, in which case use
   a period).
 
+We're returning a char* instead of just a byte_t because many of the
+characters in tables.c are actually strings (because they are Unicode, not
+ASCII, and cannot fit within a byte).
+
 ~~~
 static inline char *
 _format_char(byte_t b)
@@ -263,42 +271,6 @@ Now the juicy bit -- the functions which actually do the work of displaying the
 input.
 
 ---
-
-~~~
-static void
-call_plugin(size_t func_index, byte_t *buf, size_t buf_sz, size_t offset,
-	_Bool use_color, FILE *out)
-{
-	char *func_name = strdup(options.dfunc_names[func_index]);
-	char *plugin_name = func_name;
-	char *plugin_func = "main";
-
-	char *dash = strchr(func_name, '-');
-	if (dash) {
-		*dash = '\0';
-		plugin_func = dash + 1;
-	}
-
-	lua_newtable(L);
-	for (size_t i = 0; i < buf_sz; ++i) {
-		lua_pushinteger(L, (lua_Integer)(i + 1));
-		lua_pushinteger(L, (lua_Integer)buf[i]);
-		lua_settable(L, -3);
-	}
-
-	lua_pushinteger(L, (lua_Integer)offset);
-	lua_pushboolean(L, use_color);
-
-	luaL_Stream *p = (luaL_Stream *)lua_newuserdata(L, sizeof(luaL_Stream));
-	p->closef = &fake_pclose;
-	p->f = out;
-	luaL_setmetatable(L, LUA_FILEHANDLE);
-
-	luau_call(L, plugin_name, plugin_func, 4, 0);
-
-	free(func_name);
-}
-~~~
 
 Display the byte offset in hexadecimal, padding it with up to four spaces to
 the left.
@@ -463,9 +435,10 @@ display_ascii(byte_t *buf, size_t buf_sz, size_t linelen, _Bool use_color, FILE 
 A utility func to start less, and make our stdout point to less's stdin. This allows
 output to be piped through less automatically (kinda like `git log`).
 
-- The "-F" flag is given to make less quit immediately if the output can be
+* The "-F" flag is given to make less quit immediately if the output can be
   displayed without scrolling.
-- The FILE* value is returned so that it can be passed to pclose() later on.
+
+* The FILE* value is returned so that it can be passed to pclose() later on.
 
 ~~~
 static FILE *
@@ -520,12 +493,7 @@ huxdemp(char *path, FILE *out)
 Determine the offset to start at. By default it's zero, but if the -s option is
 passed we try to seek forward in the stream to that offset.
 
-NOTE: when we update the `offset` variable, we use the return value from
-ftell(). This is so that if the user-provided value is beyond the boundaries of
-the stream (in which case the file pointer will be at the end of the stream), we
-won't end up using an erroneous value.
-
-TODO: check that the provded offset isn't negative, etc
+TODO: check that the provided offset isn't negative, etc
 
 ~~~
 	if (options.offset != 0) {
@@ -535,6 +503,9 @@ TODO: check that the provded offset isn't negative, etc
 				path, options.offset);
 			goto cleanup;
 		} else {
+			/* Use ftell's return value, so that if the
+			 * user-provided value is beyond the stream's bounds, we
+			 * won't be setting offset to an erroneous value. */
 			offset = ftell(fp);
 		}
 	}
@@ -744,9 +715,6 @@ Finally, apply the config statement.
 
 Print a usage string and exit.
 
-TODO: Change the _Noreturn attribute to a macro that checks if the compiler
-supports _Noreturn first.
-
 ~~~
 static _Noreturn void
 _usage(char *argv0)
@@ -768,6 +736,9 @@ _usage(char *argv0)
 	printf("    -f  Change info columns to display. (default: \"offset,bytes,ascii\")\n");
 	printf("        Possible values: `offset', `bytes', `bytes-left', `bytes-right',\n");
 	printf("                         `ascii', `ascii-left', `ascii-right'.\n");
+	printf("        Using a value not in the above list will make huxd look for a\n");
+	printf("        plugin by that name (with a trailing dash and text trimmed off).\n");
+	printf("        Example: 'foo' will load plugin foo.lua, as will 'foo-bar'.\n");
 	printf("    -l  Number of bytes to be displayed on a line. (default: 16)\n");
 	printf("    -n  Maximum number of bytes to be read (can be used with -s flag).\n");
 	printf("    -s  Number of bytes to skip from the start of the input. (default: 0)\n");
@@ -829,8 +800,7 @@ loading lua files during arg parsing.)
 	luaL_requiref(L, "huxdemp", luau_openlib, false);
 ~~~
 
-Parse arguments with `arg.h'. Yes, the macros are ugly. No, I am not going to
-switch back to getopt.
+Parse arguments with `arg.h'.
 
 ~~~
 	char *optarg;
