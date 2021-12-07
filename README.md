@@ -121,6 +121,10 @@ $ sudo make install
 $
 ```
 
+You might have to fidget with the `LUA` and `LUALIB` libraries to reflect
+what version of Lua you have. On some distros, like Alpine, `LUALIB`
+might have to be set to just `lua`.
+
 ### Usage
 
 #### Basic usage

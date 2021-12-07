@@ -1,6 +1,7 @@
 CMD      = @
 
 LUA     ?= lua5.3
+LUALIB  ?= lua5.3
 
 VERSION  = 1.0.0
 NAME     = huxd
@@ -27,7 +28,7 @@ INCL     = -I/usr/include/$(LUA)
 CC       = cc
 CFLAGS   = $(DEF) $(INCL) $(WARNING) -funsigned-char
 LD       = bfd
-LDFLAGS  = -fuse-ld=$(LD) -L/usr/lib/$(LUA) -llua
+LDFLAGS  = -fuse-ld=$(LD) -L/usr/lib/$(LUA) -l$(LUALIB)
 
 .PHONY: all
 all: debug $(NAME).1
