@@ -1,5 +1,4 @@
-
-<p style="display: flex; flex-direction: column; align-items: center">
+<p align=center>
 	<img src="img/logo.png" />
 	<h2>huxdemp (aka `huxd`)</h2>
 </p>
