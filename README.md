@@ -1,6 +1,8 @@
-![logo](img/logo.png)
 
-## huxdemp (aka `huxd`)
+<p style="display: flex; flex-direction: column; align-items: center">
+	<img src="img/logo.png" />
+	<h2>huxdemp (aka `huxd`)</h2>
+</p>
 
 `huxdemp` is an highly advanced version of the venerable `hexdump`.
 
