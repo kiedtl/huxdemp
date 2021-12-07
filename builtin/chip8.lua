@@ -6,6 +6,8 @@ local huxdemp = require("huxdemp")
 
 local M = {}
 
+local use_color = nil
+
 local styles = {
     chip8 = "",
     schip = "\x1b[38;5;6m",
@@ -122,7 +124,9 @@ local function decode(buffer, index)
     return opstring, optype or "chip8"
 end
 
-function M.main(buffer, offset, use_color, out)
+function M.main(buffer, offset, out)
+    use_color = use_color or huxdemp.colors_enabled()
+
     local function s(style, text)
         if use_color then
             return style .. text .. "\x1b[m"

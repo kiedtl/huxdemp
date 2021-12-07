@@ -558,7 +558,7 @@ shouldn't read any more), and close the stream afterwards.
 						linelenhalf, options._color, out);
 				}
 			break; case CO_Plugin:
-				call_plugin(i, buf, r, offset, options._color, out);
+				call_plugin(i, buf, r, offset, out);
 			}
 
 			fprintf(out, "    ");

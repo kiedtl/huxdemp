@@ -5,6 +5,8 @@ local huxdemp = require("huxdemp")
 
 local M = {}
 
+local use_color = nil
+
 local styles = {
     normal = "",
     skipped = "\x1b[38;5;7m",
@@ -54,7 +56,9 @@ local function decode(buffer, index)
     return opstring, modestring
 end
 
-function M.main(buffer, offset, use_color, out)
+function M.main(buffer, offset, out)
+    use_color = use_color or huxdemp.colors_enabled()
+
     local i = 1
     local cols = 0
 

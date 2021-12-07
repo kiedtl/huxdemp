@@ -101,8 +101,7 @@ fake_pclose(lua_State *pL)
 }
 
 static void
-call_plugin(size_t func_index, byte_t *buf, size_t buf_sz, size_t offset,
-	_Bool use_color, FILE *out)
+call_plugin(size_t func_index, byte_t *buf, size_t buf_sz, size_t offset, FILE *out)
 {
 	char *func_name = strdup(options.dfunc_names[func_index]);
 	char *plugin_name = func_name;
@@ -122,14 +121,13 @@ call_plugin(size_t func_index, byte_t *buf, size_t buf_sz, size_t offset,
 	}
 
 	lua_pushinteger(L, (lua_Integer)offset);
-	lua_pushboolean(L, use_color);
 
 	luaL_Stream *p = (luaL_Stream *)lua_newuserdata(L, sizeof(luaL_Stream));
 	p->closef = &fake_pclose;
 	p->f = out;
 	luaL_setmetatable(L, LUA_FILEHANDLE);
 
-	luau_call(L, plugin_name, plugin_func, 4, 0);
+	luau_call(L, plugin_name, plugin_func, 3, 0);
 
 	free(func_name);
 }
@@ -184,9 +182,17 @@ api_color_for(lua_State *pL)
         return 1;
 }
 
+static int
+api_colors_enabled(lua_State *pL)
+{
+	lua_pushboolean(pL, options._color);
+        return 1;
+}
+
 static const struct luaL_Reg huxdemp_lib[] = {
-        { "linewidth",   api_option_linewidth },
-        { "color_for",   api_color_for },
+        { "linewidth",      api_option_linewidth },
+        { "color_for",      api_color_for },
+        { "colors_enabled", api_colors_enabled },
         { NULL, NULL },
 };
 

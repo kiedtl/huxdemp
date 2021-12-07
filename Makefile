@@ -9,7 +9,7 @@ PKGNAME  = $(NAME)-$(shell uname -s)-$(shell uname -m)-$(VERSION)
 DESTDIR  =
 PREFIX   = /usr/local
 
-BUILTIN  = builtin/chip8.lua:chip8 builtin/uxn.lua:uxn
+BUILTIN  = builtin/chip8.lua:chip8 builtin/uxn.lua:uxn builtin/ebcdic.lua:ebcdic
 SRC      =
 SRC3     =
 OBJ      = $(SRC:.c=.o)
