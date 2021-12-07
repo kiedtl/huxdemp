@@ -1,6 +1,6 @@
 <p align=center>
 	<img src="img/logo.png" />
-	<h2 align=center>huxdemp (aka `huxd`)</h2>
+	<h2 align=center>huxdemp (aka <code>huxd</code>)</h2>
 </p>
 
 `huxdemp` is an highly advanced version of the venerable `hexdump`.
