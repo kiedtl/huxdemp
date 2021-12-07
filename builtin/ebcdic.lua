@@ -67,6 +67,7 @@ function M.main(buffer, offset, out)
     end
 
     out:write(border)
+    out:write((" "):rep(huxdemp.linewidth() - #buffer))
 end
 
 return M
