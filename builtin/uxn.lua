@@ -115,7 +115,6 @@ function M.main(buffer, offset, out)
     local linewidth = huxdemp.linewidth()
     if cols < linewidth then
         local pad = math.floor((linewidth - cols) * 7)
-        print(cols, pad)
         out:write((" "):rep(pad))
     end
 end
