@@ -27,7 +27,7 @@ INCL     = -I/usr/include/$(LUA)
 CC       = cc
 CFLAGS   = $(DEF) $(INCL) $(WARNING) -funsigned-char
 LD       = bfd
-LDFLAGS  = -fuse-ld=$(LD) -l$(LUA) -L/usr/include
+LDFLAGS  = -fuse-ld=$(LD) -L/usr/lib/$(LUA) -llua
 
 .PHONY: all
 all: debug $(NAME).1
