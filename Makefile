@@ -24,7 +24,7 @@ WARNING  = -Wall -Wextra -Wold-style-definition -Wmissing-prototypes \
 	   -Wno-unused-function
 
 DEF      = -DVERSION=\"$(VERSION)\"
-INCL     = -I/usr/include/$(LUA)
+INCL     = -I/usr/include/$(LUA) -I/usr/local/include/$(LUA)
 CC       = cc
 CFLAGS   = $(DEF) $(INCL) $(WARNING) -funsigned-char
 LD       = bfd
