@@ -1,5 +1,6 @@
 huxd
 main.c
+utf8.c
 builtin.c
 unu
 embedc

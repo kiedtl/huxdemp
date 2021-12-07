@@ -2,7 +2,7 @@ CMD      = @
 
 LUA     ?= lua5.3
 
-VERSION  = 0.2.1
+VERSION  = 1.0.0
 NAME     = huxd
 PKGNAME  = $(NAME)-$(shell uname -s)-$(shell uname -m)-$(VERSION)
 

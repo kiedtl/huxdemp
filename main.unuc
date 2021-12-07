@@ -228,7 +228,7 @@ _utf8state(ssize_t offset, byte_t _char)
 {
 	if (utf8_state[0] == -1 || utf8_state[0]+utf8_state[1] < offset) {
 		utf8_state[0] = offset;
-		utf8_state[1] = utf8_char_length(_char) - 1;
+		utf8_state[1] = utf8_sequence_length(_char) - 1;
 	}
 }
 ~~~
