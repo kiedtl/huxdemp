@@ -79,8 +79,18 @@ See *EXAMPLES* for more.
 	- *ascii*
 	- *ascii-left*
 	- *ascii-right*
+	- *chip8*
+	- *uxn*
+	- *ebcdic*
 
-	See *EXAMPLES* for an example of this.
+	If a column is used that isn't in the above list, huxdemp will look for
+	a Lua script by that name in *$LUA_PATH* and will try to load and execute
+	it. This allows for user-defined columns (that's how the chip8, uxn,
+	and ebcdic columns are implemented -- as Lua scripts embedded in
+	huxdemp).
+
+	See *EXAMPLES* for an example of this, and *PLUGINS* for more
+	information on writing and using plugins.
 
 *-n*=_LENGTH_
 	Only read _LENGTH_ bytes from the input, starting from the beginning
@@ -124,6 +134,92 @@ See *EXAMPLES* for more.
 	- Standard output is not a terminal.
 	- The output is small enough that it can be seen at once without
 	  scrolling.
+
+# PLUGINS
+
+*Using plugins*
+	When using the *-f* flag, huxdemp will look for a plugin if the value
+	isn't one of the builtin columns. For example, with
+	*-f ascii,offset,foo*, huxdemp will use the builtin *ascii*/*offset*
+	columns, and look for a plugin called "foo" in *$LUA_PATH*. By default
+	that's in the current directory and in obscure places like
+	_/usr/local/lib/lua5.3/_, but you can set a custom plugin path by
+	appending the path (say, _$HOME/.config/huxdemp/_) to *$LUA_PATH*:
+
+	```
+	export LUA_PATH=<my_path>;$LUA_PATH
+	```
+
+	Arguments to *-f* that have a dash in it are treated specially: the
+	part before the dash is treated as the plugin name, and the bits after
+	as the "sub-plugin". So *-f foo-bar,foo-baz* will load just the "foo"
+	plugin, and try to run the bar() and baz() functions within that
+	plugin's Lua script.
+
+*Writing plugins*
+	Writing a plugin is quite simple: simply create a Lua file
+	_plugin_name.lua_, and define a *main(buffer, offset, out)* function in
+	the returned module:
+
+	```
+	local M = {}
+
+	function M.main(buffer, offset, out)
+	end
+
+	return M
+	```
+
+	For each line, the *main()* function will be called.
+
+	- *buffer* is a table of the bytes for that line.
+	- *offset* is the offset from the start of the file.
+	- *out* is the stream through which output must be written. *Print
+	  output only through this stream with `out:write(<args>)`,* or your
+	  plugin will be broken when _less(1)_ (with the *-P* flag) is used.
+
+	Here's a simple reimplementation of the `ascii` column, without colors
+	or other fancy features:
+
+	```
+	-- myascii.lua
+
+	local M = {}
+
+	function M.main(buffer, offset, out)
+	    -- Print the beginning border.
+	    out:write("|")
+
+	    -- Iterate over the bytes provided. If it's printable, print it; otherwise,
+	    -- output a period.
+	    for i = 1, #buffer do
+	        if buffer[i] < 32 or buffer[i] > 126 then
+	            out:write(".")
+	        else
+	            out:write(utf8.char(buffer[i]))
+	        end
+	    end
+
+	    -- Print the end border.
+	    out:write("|")
+	end
+
+	return M
+	```
+
+	As previously noted, plugins can have multiple columns defined in it --
+	for example, the above plugin could have a *M.foo* function to define a
+	*myascii-foo* column which calls *M.foo()*, separate from the default
+	*myascii* column which calls *M.main()*.
+
+	The following APIs are available to plugins (just *require("huxdemp")*
+	to import them):
+
+	- *huxdemp.linewidth() → bool*: Returns the value of the *-l* option.
+	- *huxdemp.color_for(number) → number*: Returns the color used for a particular
+	  bytes, taking *$HUXD_COLORS* into account.
+	- *huxdemp.colors_enabled() → bool*: Returns whether colors are enabled or not
+	  (with the *-C* flag).
 
 # ENVIRONMENT
 
