@@ -267,9 +267,9 @@ For each line, the `main()` function will be called.
 
 * `buffer` is a table of the bytes for that line.
 * `offset` is the offset from the start of the file.
-* `out` is the stream through which output must be written. *You should print
-  output through this stream with `out:write(<args>)`, or your plugin will be
-  broken when `less(1)` (with the `-P` flag) is used.*
+* `out` is the stream through which output must be written. **Print output only
+  through this stream with `out:write(<args>)`, or your plugin will be broken
+  when `less(1)` (with the `-P` flag) is used.**
 
 Here's a simple reimplementation of the `ascii` column, without colors or other
 fancy features:
@@ -325,9 +325,9 @@ them):
   - relative: "huxd -m 0x34,12,0o45 < foo"
   - absolute: "huxd -M 0x34,12,0o45 < foo"
 - Support for OpenBSD.
+  - Use `pledge(2)`/`unveil(2)` as needed.
 - Use skeeto's branchless utf8 decoder design to make this tool Blazing Fast™.
-- Use `pledge(2)`/`unveil(2)` on OpenBSD.
-- Support Windows 10/11. (very low priority.)
+- Support Windows 10/11. (Very low priority.)
 
 ### License
 
