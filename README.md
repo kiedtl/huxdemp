@@ -307,8 +307,7 @@ column which calls `M.main()`.
 The following APIs are available to plugins (just `require("huxdemp")` to import
 them):
 
-* `huxdemp.linewidth() → bool`: Returns the value of the `-l` option. You could
-  just use `#buffer` of course.
+* `huxdemp.linewidth() → bool`: Returns the value of the `-l` option.
 * `huxdemp.color_for(number) → number`: Returns the color used for a particular
   bytes, taking `$HUXD_COLORS` into account.
 * `huxdemp.colors_enabled() → bool`: Returns whether colors are enabled or not
