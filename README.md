@@ -97,6 +97,14 @@ codepoint:
 yay huxd
 ```
 
+#### Gentoo
+
+```
+sudo eselect repository enable dm9pZCAq
+sudo emerge --sync dm9pZCAq
+sudo emerge sys-apps/huxdemp::dm9pZCAq
+```
+
 #### Download
 
 Download a binary tarball from the releases, unpack, and move the
