@@ -262,7 +262,7 @@ _format_char(byte_t b)
 	if (options.table && options.table[b])
 		return options.table[b];
 
-	chbuf[0] = isprint(b) ? b : '.';
+	chbuf[0] = isgraph(b) ? b : '.';
 	return (char *)&chbuf;
 }
 ~~~
