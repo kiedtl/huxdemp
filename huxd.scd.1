@@ -218,6 +218,9 @@ See *EXAMPLES* for more.
 	- *huxdemp.linewidth() → bool*: Returns the value of the *-l* option.
 	- *huxdemp.color_for(number) → number*: Returns the color used for a particular
 	  bytes, taking *$HUXD_COLORS* into account.
+	- *huxdemp.color_for_offset() → number*: Returns the color used for offsets.
+	- *huxdemp.color_for_ascii_borders() → number*: Returns the color used
+	  for the ASCII column's border
 	- *huxdemp.colors_enabled() → bool*: Returns whether colors are enabled or not
 	  (with the *-C* flag).
 
@@ -228,7 +231,7 @@ See *EXAMPLES* for more.
 	Its content takes the following syntax:
 
 		```
-		<range>=<value>[;<range>=<value>]...
+		<range/name>=<value>[;<range>=<value>]...
 		```
 	
 	...where _<range>_, indicating which bytes should be colored with
@@ -270,9 +273,17 @@ See *EXAMPLES* for more.
 :] 0x0
 |  del
 :] 0x7f
+|  offsets
+:] <Sets the color of the offset text>
+|  ascii_border
+:] <Sets the color of the ASCII column border>
 
 
 	*Examples*:
+
+	- HUXD_COLORS="ascii_border=2"
+
+	Sets the color of the ASCII column's border to green.
 
 	- HUXD_COLORS="*7f=124*"
 

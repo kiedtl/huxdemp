@@ -170,6 +170,10 @@ api_option_linewidth(lua_State *pL)
         return 1;
 }
 
+/*
+ * Ideally api_color_for_* would be merged into this, too lazy to do that right
+ * now.
+ */
 static int
 api_color_for(lua_State *pL)
 {
@@ -183,6 +187,20 @@ api_color_for(lua_State *pL)
 }
 
 static int
+api_color_for_offset(lua_State *pL)
+{
+	UNUSED(pL);
+        return style_offset;
+}
+
+static int
+api_color_for_ascii_borders(lua_State *pL)
+{
+	UNUSED(pL);
+        return style_lines;
+}
+
+static int
 api_colors_enabled(lua_State *pL)
 {
 	lua_pushboolean(pL, options._color);
@@ -190,9 +208,11 @@ api_colors_enabled(lua_State *pL)
 }
 
 static const struct luaL_Reg huxdemp_lib[] = {
-        { "linewidth",      api_option_linewidth },
-        { "color_for",      api_color_for },
-        { "colors_enabled", api_colors_enabled },
+        { "linewidth",                api_option_linewidth },
+        { "color_for",                api_color_for },
+        { "color_for_offset",         api_color_for_offset },
+        { "color_for_ascii_borders",  api_color_for_ascii_borders },
+        { "colors_enabled",           api_colors_enabled },
         { NULL, NULL },
 };
 

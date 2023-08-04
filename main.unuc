@@ -157,11 +157,13 @@ struct {
 } options;
 ~~~
 
-A table to hold the colors used for all byte values. This will be set later in
+All the colors used for byte values and other stuff. This will be set later in
 main() with config().
 
 ~~~
 uint8_t styles[256] = {0};
+uint8_t style_offset = 15; // Whatever \x1b[37m is...
+uint8_t style_lines = 7;
 ~~~
 
 Keep track of what UTF8 codepoint we're printing. This allows us to highlight
@@ -275,8 +277,8 @@ input.
 Display the byte offset in hexadecimal, padding it with up to four spaces to
 the left.
 
-* `\x1b[37m': Display the text in light grey.
-* `\x1b[m':   Reset the text's color.
+* `\x1b[38;5;<number>m': Change the color to the chosen style (256-color mode).
+* `\x1b[m':              Reset the text's color.
 
   40    72 69 20 61 73 20 68 c3  ab 20 68 61 64 20 73 70    │ri as h·· had sp│
   50    6f 6b 65 6e 20 62 65 66  6f 72 65 20 69 6e 20 54    │oken before in T│
@@ -288,7 +290,7 @@ static void
 display_offset(size_t offset, _Bool use_color, FILE *out)
 {
 	if (use_color) {
-		fprintf(out, "\x1b[37m%4zx\x1b[m", offset);
+		fprintf(out, "\x1b[38;5;%hdm%4zx\x1b[m", style_offset, offset);
 	} else {
 		fprintf(out, "%08zx", offset);
 	}
@@ -405,9 +407,9 @@ display_bytes_right(byte_t *buf, size_t buf_sz, size_t offset, _Bool use_color, 
 }
 ~~~
 
-Print the usual four spaces, a nice Unicode vertical line-drawing glyph, and
-each character for the ASCII column styled with the escape codes specified in
-tables.c. Finally, add space padding.
+Print the usual four spaces, a nice Unicode vertical line-drawing glyph the
+chosen color, and each character for the ASCII column styled with the escape
+codes specified in tables.c. Finally, add space padding.
 
   40    72 69 20 61 73 20 68 c3  ab 20 68 61 64 20 73 70    │ri as h·· had sp│
   50    6f 6b 65 6e 20 62 65 66  6f 72 65 20 69 6e 20 54    │oken before in T│
@@ -418,7 +420,7 @@ tables.c. Finally, add space padding.
 static void
 display_ascii(byte_t *buf, size_t buf_sz, size_t linelen, _Bool use_color, FILE *out)
 {
-	fprintf(out, "%s", use_color ? "│" : "|");
+	fprintf(out, "\x1b[38;5;%hdm%s\x1b[m", style_lines, use_color ? "│" : "|");
 	for (size_t i = 0; i < buf_sz; ++i) {
 		if (use_color) {
 			fprintf(out, "\x1b[38;5;%hdm%s\x1b[m",
@@ -428,7 +430,7 @@ display_ascii(byte_t *buf, size_t buf_sz, size_t linelen, _Bool use_color, FILE 
 		}
 	}
 	fprintf(out, "%*s", (int)(linelen - buf_sz), "");
-	fprintf(out, "%s", use_color ? "│" : "|");
+	fprintf(out, "\x1b[38;5;%hdm%s\x1b[m", style_lines, use_color ? "│" : "|");
 }
 ~~~
 
@@ -653,10 +655,43 @@ Now, split along the "=".
 		char *rhand = eql + 1;
 ~~~
 
-Pre-defined strings are expanded to pre-defined ranges to make configuring this
-lame program slightly less painful.
+Parse the right-hand side of the config statement. We do our own base detection
+because we don't want "0300" to be parsed as an octal (the only true way to do
+it is "0o300").
+
+FIXME: we don't reject invalid numbers here (but trailing whitespace should be
+OK).
 
 ~~~
+		size_t base = 10;
+		if (!strncmp(rhand, "0o", 2)) base = 8,  rhand += 2;
+		if (!strncmp(rhand, "0x", 2)) base = 16, rhand += 2;
+		if (!strncmp(rhand, "0b", 2)) base = 2,  rhand += 2;
+		size_t rhand_num = strtol(rhand, NULL, base);
+
+		if (rhand_num > 255) {
+			warnx("Couldn't parse config: '%ld' out of range (only 255 colors!)", rhand_num);
+			return;
+		}
+~~~
+
+Begin parsing the left-hand side.
+
+If the string is for something other than a character range, apply that style
+here itself and continue onwards.
+
+Otherwise, pre-defined strings are expanded to pre-defined ranges to make
+configuring this lame program slightly less painful.
+
+~~~
+		if (!strcmp(lhand, "offset")) {
+			style_offset = (uint8_t)rhand_num;
+			continue;
+		} else if (!strcmp(lhand, "ascii_border")) {
+			style_lines = (uint8_t)rhand_num;
+			continue;
+		}
+
 		char *range = lhand;
 		if (!strcmp(lhand, "printable"))   range = "0x20-0x7E";
 		if (!strcmp(lhand, "unprintable")) range = "0x0-0x1F,0x7F";
@@ -679,26 +714,6 @@ Examples:
 		ssize_t range_len = expand_range(range, range_out);
 		if (range_len == -1) {
 			warnx("Couldn't parse config: %s is not a valid range", range);
-			return;
-		}
-~~~
-
-Parse the right-hand side of the config statement. We do our own base detection
-because we don't want "0300" to be parsed as an octal (the only true way to do
-it is "0o300").
-
-FIXME: we don't reject invalid numbers here (but trailing whitespace should be
-OK).
-
-~~~
-		size_t base = 10;
-		if (!strncmp(rhand, "0o", 2)) base = 8,  rhand += 2;
-		if (!strncmp(rhand, "0x", 2)) base = 16, rhand += 2;
-		if (!strncmp(rhand, "0b", 2)) base = 2,  rhand += 2;
-		size_t rhand_num = strtol(rhand, NULL, base);
-
-		if (rhand_num > 255) {
-			warnx("Couldn't parse config: '%ld' is out of range (only 255 colors!)", rhand_num);
 			return;
 		}
 ~~~
