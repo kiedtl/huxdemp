@@ -687,7 +687,7 @@ configuring this lame program slightly less painful.
 		if (!strcmp(lhand, "offset")) {
 			style_offset = (uint8_t)rhand_num;
 			continue;
-		} else if (!strcmp(lhand, "ascii_border")) {
+		} else if (!strcmp(lhand, "ascii_borders")) {
 			style_lines = (uint8_t)rhand_num;
 			continue;
 		}

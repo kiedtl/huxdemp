@@ -236,7 +236,15 @@ Instead of a `<range>`, you can use a predefined range:
 |nul              |            0x0 |
 |del              |           0x7f |
 
-Here's the default value of `HUXD_COLORS`:
+Two other special values can be used to change the colors for the offsets and
+borders:
+
+|Special value    | Description                                                       |
+|:---------------:|:-----------------------------------------------------------------:|
+|offset           | Sets the colors used for the offset markers. (default: 15)        |
+|ascii_borders    | Sets the colors used for the ASCII column's borders. (default: 7) |
+
+Here's the default value of `HUXD_COLORS` (not including `offset`/`ascii_borders`):
 
 ```
 HUXD_COLORS="printable=15;blackspace=1;nul=8;whitespace=8;128-255=3;1-8=6;11-31=6"
@@ -323,6 +331,9 @@ them):
 * `huxdemp.linewidth() → bool`: Returns the value of the `-l` option.
 * `huxdemp.color_for(number) → number`: Returns the color used for a particular
   bytes, taking `$HUXD_COLORS` into account.
+* `huxdemp.color_for_offset() → number`: Returns the color used for offsets.
+* `huxdemp.color_for_ascii_borders() → number`: Returns the color used for the
+  ASCII column's border.
 * `huxdemp.colors_enabled() → bool`: Returns whether colors are enabled or not
   (with the `-C` flag).
 
