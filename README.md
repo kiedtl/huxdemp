@@ -93,8 +93,11 @@ codepoint:
 
 #### Arch Linux
 
+[huxdemp](https://aur.archlinux.org/packages/huxdemp) (release, bin), [huxdemp-git](https://aur.archlinux.org/packages/huxdemp-git) (src, git)
+
 ```
-yay huxd
+yay huxdemp
+yay huxdemp-git
 ```
 
 #### Gentoo
